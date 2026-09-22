@@ -496,6 +496,25 @@ export const Home: React.FC = () => {
         </div>
       </div>
 
+      {/* Footer */}
+      <footer
+        style={{
+          marginTop: 'auto',
+          borderTop: '3px solid #0A0A0A',
+          background: '#FFFFFF',
+          padding: '1.25rem 2rem',
+          textAlign: 'center',
+          fontFamily: 'var(--font-heading)',
+          fontWeight: 800,
+          fontSize: '0.95rem',
+          color: '#0A0A0A',
+          letterSpacing: '0.02em',
+          zIndex: 1,
+        }}
+      >
+        Todos os direitos reservados Christian Siqueira.
+      </footer>
+
       {/* Interactive RPG Demo Simulator Modal */}
       <RPGDemoModal
         isOpen={showDemoModal}
