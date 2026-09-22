@@ -1,10 +1,11 @@
 // ============================================================
-// hootka – Typed API wrapper around window.hootka IPC calls
+// hootka – Typed API wrapper with Supabase Cloud + Offline Local
 // ============================================================
 
 import type {
   Quiz, Question, Game, Team, GameQuestion, Answer,
 } from '../types';
+import { supabase } from './supabase';
 
 export const isElectron = typeof window !== 'undefined' && Boolean(window.hootka);
 
@@ -13,10 +14,40 @@ const MOCK_QUIZZES_KEY = 'hootka_mock_quizzes';
 const MOCK_GAMES_KEY = 'hootka_mock_games';
 const MOCK_SETTINGS_KEY = 'hootka_mock_settings';
 
+async function getAuthUser() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export const api = {
   quiz: {
     getAll: async (): Promise<Quiz[]> => {
+      // 1. If user is logged into Supabase, fetch from cloud
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('quizzes')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (!error && data) {
+            return data;
+          }
+        } catch (err) {
+          console.warn('Supabase quiz:getAll error, falling back to local:', err);
+        }
+      }
+
+      // 2. If running inside Electron desktop
       if (isElectron) return window.hootka.quiz.getAll();
+
+      // 3. Fallback to localStorage / guest mode
       const raw = localStorage.getItem(MOCK_QUIZZES_KEY);
       if (raw) return JSON.parse(raw);
       const demo: Quiz[] = [
@@ -35,12 +66,54 @@ export const api = {
       localStorage.setItem(MOCK_QUIZZES_KEY, JSON.stringify(demo));
       return demo;
     },
+
     getById: async (id: string): Promise<Quiz | null> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('quizzes')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .single();
+
+          if (!error && data) return data;
+        } catch (err) {
+          console.warn('Supabase quiz:getById fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.quiz.getById(id);
       const quizzes = await api.quiz.getAll();
       return quizzes.find((q) => q.id === id) || null;
     },
+
     create: async (data: Partial<Quiz>): Promise<{ id: string }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          const { data: created, error } = await supabase
+            .from('quizzes')
+            .insert({
+              user_id: user.id,
+              name: data.name || 'Novo Quiz',
+              description: data.description || '',
+              subject: data.subject || '',
+              grade: data.grade || '',
+              theme: data.theme || '',
+            })
+            .select('id')
+            .single();
+
+          if (!error && created) {
+            return { id: created.id };
+          }
+        } catch (err) {
+          console.warn('Supabase quiz:create fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.quiz.create(data);
       const quizzes = await api.quiz.getAll();
       const id = 'quiz-' + Date.now();
@@ -59,7 +132,29 @@ export const api = {
       localStorage.setItem(MOCK_QUIZZES_KEY, JSON.stringify(quizzes));
       return { id };
     },
+
     update: async (id: string, data: Partial<Quiz>): Promise<{ success: boolean }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          await supabase
+            .from('quizzes')
+            .update({
+              name: data.name,
+              description: data.description,
+              subject: data.subject,
+              grade: data.grade,
+              theme: data.theme,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', id)
+            .eq('user_id', user.id);
+          return { success: true };
+        } catch (err) {
+          console.warn('Supabase quiz:update fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.quiz.update(id, data);
       const quizzes = await api.quiz.getAll();
       const idx = quizzes.findIndex((q) => q.id === id);
@@ -69,19 +164,41 @@ export const api = {
       }
       return { success: true };
     },
+
     delete: async (id: string): Promise<{ success: boolean }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          await supabase
+            .from('quizzes')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', user.id);
+          return { success: true };
+        } catch (err) {
+          console.warn('Supabase quiz:delete fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.quiz.delete(id);
       const quizzes = await api.quiz.getAll();
       const filtered = quizzes.filter((q) => q.id !== id);
       localStorage.setItem(MOCK_QUIZZES_KEY, JSON.stringify(filtered));
       return { success: true };
     },
+
     duplicate: async (id: string): Promise<{ id: string }> => {
       if (isElectron) return window.hootka.quiz.duplicate(id);
       const q = await api.quiz.getById(id);
       if (!q) return { id: '' };
-      return api.quiz.create({ ...q, name: `${q.name} (Cópia)` });
+      const qs = await api.question.getByQuiz(id);
+      const res = await api.quiz.create({ ...q, name: `${q.name} (Cópia)` });
+      if (res.id && qs.length > 0) {
+        await api.question.importBatch(res.id, qs);
+      }
+      return res;
     },
+
     exportQuiz: async (id: string) => {
       if (isElectron) return window.hootka.quiz.exportQuiz(id);
       const quiz = await api.quiz.getById(id);
@@ -92,6 +209,23 @@ export const api = {
 
   question: {
     getByQuiz: async (quizId: string): Promise<Question[]> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('quiz_id', quizId)
+            .order('order_index', { ascending: true });
+
+          if (!error && data && data.length > 0) {
+            return data;
+          }
+        } catch (err) {
+          console.warn('Supabase question:getByQuiz fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.question.getByQuiz(quizId);
       const raw = localStorage.getItem(`hootka_questions_${quizId}`);
       if (raw) return JSON.parse(raw);
@@ -113,7 +247,36 @@ export const api = {
       }
       return [];
     },
+
     create: async (data: Partial<Question>): Promise<{ id: string }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          const { data: created, error } = await supabase
+            .from('questions')
+            .insert({
+              quiz_id: data.quiz_id,
+              text: data.text || '',
+              option_a: data.option_a || '',
+              option_b: data.option_b || '',
+              option_c: data.option_c || '',
+              option_d: data.option_d || '',
+              correct_answer: data.correct_answer || 'A',
+              time_seconds: data.time_seconds || 30,
+              base_points: data.base_points || 100,
+              is_special: data.is_special ? 1 : 0,
+              is_wildcard: data.is_wildcard ? 1 : 0,
+              order_index: data.order_index ?? 0,
+            })
+            .select('id')
+            .single();
+
+          if (!error && created) return { id: created.id };
+        } catch (err) {
+          console.warn('Supabase question:create fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.question.create(data);
       const quizId = data.quiz_id || '';
       const qs = await api.question.getByQuiz(quizId);
@@ -137,19 +300,68 @@ export const api = {
       localStorage.setItem(`hootka_questions_${quizId}`, JSON.stringify(qs));
       return { id };
     },
+
     update: async (id: string, data: Partial<Question>): Promise<{ success: boolean }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          await supabase.from('questions').update(data).eq('id', id);
+          return { success: true };
+        } catch (err) {
+          console.warn('Supabase question:update fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.question.update(id, data);
       return { success: true };
     },
+
     delete: async (id: string): Promise<{ success: boolean }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          await supabase.from('questions').delete().eq('id', id);
+          return { success: true };
+        } catch (err) {
+          console.warn('Supabase question:delete fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.question.delete(id);
       return { success: true };
     },
+
     reorder: async (quizId: string, ids: string[]): Promise<{ success: boolean }> => {
       if (isElectron) return window.hootka.question.reorder(quizId, ids);
       return { success: true };
     },
+
     importBatch: async (quizId: string, questions: any[]): Promise<{ count: number }> => {
+      const user = await getAuthUser();
+      if (user) {
+        try {
+          const payload = questions.map((q, i) => ({
+            quiz_id: quizId,
+            text: q.text,
+            option_a: q.option_a,
+            option_b: q.option_b,
+            option_c: q.option_c,
+            option_d: q.option_d,
+            correct_answer: q.correct_answer,
+            time_seconds: q.time_seconds,
+            base_points: q.base_points,
+            is_special: q.is_special ? 1 : 0,
+            is_wildcard: q.is_wildcard ? 1 : 0,
+            order_index: i,
+          }));
+
+          const { error } = await supabase.from('questions').insert(payload);
+          if (!error) return { count: questions.length };
+        } catch (err) {
+          console.warn('Supabase importBatch fallback:', err);
+        }
+      }
+
       if (isElectron) return window.hootka.question.importBatch(quizId, questions);
       const qs = await api.question.getByQuiz(quizId);
       const mapped = questions.map((q, i) => ({
@@ -200,20 +412,24 @@ export const api = {
       localStorage.setItem(MOCK_GAMES_KEY, JSON.stringify(games));
       return { id };
     },
+
     getById: async (id: string): Promise<any> => {
       if (isElectron) return window.hootka.game.getById(id);
       const games: Game[] = JSON.parse(localStorage.getItem(MOCK_GAMES_KEY) || '[]');
       return games.find((g) => g.id === id) || null;
     },
+
     getAll: async (): Promise<any[]> => {
       if (isElectron) return window.hootka.game.getAll();
       return JSON.parse(localStorage.getItem(MOCK_GAMES_KEY) || '[]');
     },
+
     getActive: async (): Promise<any> => {
       if (isElectron) return window.hootka.game.getActive();
       const games: Game[] = JSON.parse(localStorage.getItem(MOCK_GAMES_KEY) || '[]');
       return games.find((g) => g.state !== 'finished') || null;
     },
+
     updateState: async (id: string, state: string, extra?: any): Promise<{ success: boolean }> => {
       if (isElectron) return window.hootka.game.updateState(id, state, extra);
       const games: Game[] = JSON.parse(localStorage.getItem(MOCK_GAMES_KEY) || '[]');
@@ -224,6 +440,7 @@ export const api = {
       }
       return { success: true };
     },
+
     finish: async (id: string, data?: any): Promise<{ success: boolean }> => {
       if (isElectron) return window.hootka.game.finish(id, data || {});
       const games: Game[] = JSON.parse(localStorage.getItem(MOCK_GAMES_KEY) || '[]');
@@ -234,6 +451,7 @@ export const api = {
       }
       return { success: true };
     },
+
     getStats: async (id: string): Promise<any> => {
       if (isElectron) return window.hootka.game.getStats(id);
       return {
@@ -374,7 +592,6 @@ export const api = {
   },
 };
 
-// Aliases for submodules
 export const quizApi = api.quiz;
 export const questionApi = api.question;
 export const gameApi = api.game;

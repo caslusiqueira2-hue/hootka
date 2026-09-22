@@ -24,3 +24,9 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Environment variables
+.env
+.env*.local
+!.env.example
+

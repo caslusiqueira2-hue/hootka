@@ -17,6 +17,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "electron-store": "^8.1.0",
     "framer-motion": "^11.3.0",
     "papaparse": "^5.4.1",

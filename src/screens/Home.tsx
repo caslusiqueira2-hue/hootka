@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuizStore } from '@/stores/quizStore';
 import { useGameStore } from '@/stores/gameStore';
+import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import type { Quiz, Game } from '@/types';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
@@ -12,6 +13,7 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { quizzes, loading, loadQuizzes } = useQuizStore();
   const setSelectedQuiz = useGameStore((s) => s.setSelectedQuiz);
+  const { user, signOut } = useAuthStore();
   const [activeGame, setActiveGame] = useState<Game | null>(null);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ export const Home: React.FC = () => {
           maxWidth: '1100px',
           margin: '0 auto',
           width: '100%',
-          padding: '3rem 2rem',
+          padding: '2rem 2rem 3rem',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
@@ -117,6 +119,74 @@ export const Home: React.FC = () => {
           zIndex: 1,
         }}
       >
+        {/* Teacher Account / Cloud Sync Status Bar */}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '900px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '2rem',
+            padding: '0.75rem 1.25rem',
+            background: '#FFFFFF',
+            border: '3px solid #0A0A0A',
+            boxShadow: '4px 4px 0 #0A0A0A',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.4rem' }}>{user ? '👨‍🏫' : '💻'}</span>
+            <div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: '0.95rem' }}>
+                {user ? user.email : 'Modo Convidado (Armazenamento Local)'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#555', fontWeight: 700 }}>
+                {user
+                  ? '☁️ Quizzes sincronizados na nuvem Supabase'
+                  : '⚠️ Modo offline • Quizzes salvos apenas neste dispositivo'}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            {user ? (
+              <button
+                onClick={() => signOut()}
+                style={{
+                  background: '#FFEBEB',
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '2px 2px 0 #0A0A0A',
+                  padding: '0.45rem 1rem',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                🚪 Sair da Conta
+              </button>
+            ) : (
+              <button
+                onClick={() => signOut()}
+                style={{
+                  background: '#FFD600',
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '2px 2px 0 #0A0A0A',
+                  padding: '0.45rem 1rem',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                🔑 Entrar / Criar Conta
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Hero Title */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
