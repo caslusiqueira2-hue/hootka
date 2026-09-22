@@ -7,7 +7,7 @@ import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard';
 
 export const Auth: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, continueAsGuest, loading } = useAuthStore();
+  const { signIn, signUp, resendConfirmation, continueAsGuest, loading } = useAuthStore();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -15,11 +15,14 @@ export const Auth: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+    setShowResend(false);
 
     if (!email.trim()) {
       setErrorMsg('Informe seu e-mail');
@@ -38,23 +41,43 @@ export const Auth: React.FC = () => {
       if (res.success) {
         navigate('/');
       } else {
-        setErrorMsg(
-          res.error?.includes('Invalid login credentials')
-            ? 'E-mail ou senha incorretos'
-            : res.error || 'Erro ao entrar'
-        );
+        setErrorMsg(res.error || 'Erro ao entrar');
+        if (res.needsConfirmation) {
+          setShowResend(true);
+        }
       }
     } else {
       const res = await signUp(email, password);
       if (res.success) {
-        setSuccessMsg('Conta criada com sucesso! Redirecionando...');
-        setTimeout(() => navigate('/'), 1200);
+        if (res.needsConfirmation) {
+          setSuccessMsg(
+            `Cadastro realizado! Um e-mail de confirmação foi enviado para ${email}. Clique no link do e-mail para ativar sua conta e depois faça o login.`
+          );
+          setIsLogin(true);
+          setShowResend(true);
+        } else {
+          setSuccessMsg('Conta criada com sucesso! Redirecionando...');
+          setTimeout(() => navigate('/'), 1200);
+        }
       } else {
         setErrorMsg(res.error || 'Erro ao criar conta');
       }
     }
 
     setSubmitting(false);
+  };
+
+  const handleResend = async () => {
+    if (!email.trim()) return;
+    setResending(true);
+    const res = await resendConfirmation(email);
+    setResending(false);
+    if (res.success) {
+      setSuccessMsg('Link de confirmação reenviado com sucesso! Verifique sua caixa de entrada ou spam.');
+      setErrorMsg(null);
+    } else {
+      setErrorMsg(res.error || 'Não foi possível reenviar o link.');
+    }
   };
 
   const handleGuest = () => {
@@ -233,9 +256,33 @@ export const Auth: React.FC = () => {
                 fontWeight: 800,
                 fontSize: '0.9rem',
                 marginBottom: '1.25rem',
+                lineHeight: 1.4,
               }}
             >
               ✅ {successMsg}
+            </div>
+          )}
+
+          {showResend && (
+            <div style={{ marginBottom: '1.25rem' }}>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                style={{
+                  width: '100%',
+                  background: '#FFD600',
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '3px 3px 0 #0A0A0A',
+                  padding: '0.6rem 1rem',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {resending ? 'REENVIANDO LINK...' : '📩 REENVIAR E-MAIL DE CONFIRMAÇÃO'}
+              </button>
             </div>
           )}
 
