@@ -6,6 +6,8 @@ import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard';
 import NeoBrutalistBadge from '@/components/ui/NeoBrutalistBadge';
 import NeoBrutalistModal from '@/components/ui/NeoBrutalistModal';
+import BatchQuestionsModal from '@/components/quiz/BatchQuestionsModal';
+import type { ParsedQuestion } from '@/lib/questionParser';
 
 export const CreateQuiz: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +24,25 @@ export const CreateQuiz: React.FC = () => {
 
   // Question modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const handleAddBatchQuestions = (batch: ParsedQuestion[]) => {
+    const formatted: Omit<Question, 'id' | 'quiz_id'>[] = batch.map((q, i) => ({
+      text: q.text,
+      option_a: q.option_a,
+      option_b: q.option_b,
+      option_c: q.option_c,
+      option_d: q.option_d,
+      correct_answer: q.correct_answer,
+      time_seconds: q.time_seconds,
+      base_points: q.base_points,
+      is_special: q.is_special,
+      is_wildcard: q.is_wildcard,
+      order_index: questions.length + i,
+    }));
+    setQuestions((prev) => [...prev, ...formatted]);
+  };
 
   // Question form
   const [qText, setQText] = useState('');
@@ -248,7 +268,10 @@ export const CreateQuiz: React.FC = () => {
         <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
           2. QUESTÕES ({questions.length})
         </h2>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <NeoBrutalistButton variant="secondary" size="sm" onClick={() => setIsBatchModalOpen(true)}>
+            ⚡ ADICIONAR EM LOTE (CHATGPT / TABELA)
+          </NeoBrutalistButton>
           <NeoBrutalistButton variant="primary" size="sm" onClick={openAddModal}>
             + ADICIONAR QUESTÃO
           </NeoBrutalistButton>
@@ -257,10 +280,15 @@ export const CreateQuiz: React.FC = () => {
 
       {questions.length === 0 ? (
         <NeoBrutalistCard style={{ padding: '2.5rem', textAlign: 'center', background: '#FFFDF9' }}>
-          <p style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem' }}>Nenhuma questão adicionada ainda.</p>
-          <NeoBrutalistButton variant="primary" size="md" onClick={openAddModal}>
-            ADICIONAR PRIMEIRA QUESTÃO
-          </NeoBrutalistButton>
+          <p style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1.25rem' }}>Nenhuma questão adicionada ainda.</p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <NeoBrutalistButton variant="primary" size="md" onClick={openAddModal}>
+              ADICIONAR UMA QUESTÃO
+            </NeoBrutalistButton>
+            <NeoBrutalistButton variant="secondary" size="md" onClick={() => setIsBatchModalOpen(true)}>
+              ⚡ ADICIONAR VÁRIAS EM LOTE (IA / CSV)
+            </NeoBrutalistButton>
+          </div>
         </NeoBrutalistCard>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -485,6 +513,13 @@ export const CreateQuiz: React.FC = () => {
           </div>
         </div>
       </NeoBrutalistModal>
+
+      {/* Batch Questions Modal */}
+      <BatchQuestionsModal
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        onAddQuestions={handleAddBatchQuestions}
+      />
     </div>
   );
 };

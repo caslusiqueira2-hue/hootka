@@ -6,6 +6,8 @@ import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard';
 import NeoBrutalistBadge from '@/components/ui/NeoBrutalistBadge';
 import NeoBrutalistModal from '@/components/ui/NeoBrutalistModal';
+import BatchQuestionsModal from '@/components/quiz/BatchQuestionsModal';
+import type { ParsedQuestion } from '@/lib/questionParser';
 
 export const EditQuiz: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,9 +21,30 @@ export const EditQuiz: React.FC = () => {
   const [theme, setTheme] = useState('');
 
   const [questions, setQuestions] = useState<Question[]>([]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const handleAddBatchQuestions = async (batch: ParsedQuestion[]) => {
+    if (!id) return;
+    const payload = batch.map((q, i) => ({
+      text: q.text,
+      option_a: q.option_a,
+      option_b: q.option_b,
+      option_c: q.option_c,
+      option_d: q.option_d,
+      correct_answer: q.correct_answer,
+      time_seconds: q.time_seconds,
+      base_points: q.base_points,
+      is_special: q.is_special,
+      is_wildcard: q.is_wildcard,
+      order_index: questions.length + i,
+    }));
+
+    await api.question.importBatch(id, payload);
+    const qs = await api.question.getByQuiz(id);
+    setQuestions(qs || []);
+  };
 
   const [qText, setQText] = useState('');
   const [optA, setOptA] = useState('');
@@ -288,13 +311,18 @@ export const EditQuiz: React.FC = () => {
       </NeoBrutalistCard>
 
       {/* Questions List */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
           2. QUESTÕES CADASTRADAS ({questions.length})
         </h2>
-        <NeoBrutalistButton variant="primary" size="sm" onClick={openAddModal}>
-          + ADICIONAR QUESTÃO
-        </NeoBrutalistButton>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <NeoBrutalistButton variant="secondary" size="sm" onClick={() => setIsBatchModalOpen(true)}>
+            ⚡ ADICIONAR EM LOTE
+          </NeoBrutalistButton>
+          <NeoBrutalistButton variant="primary" size="sm" onClick={openAddModal}>
+            + ADICIONAR QUESTÃO
+          </NeoBrutalistButton>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -446,6 +474,13 @@ export const EditQuiz: React.FC = () => {
           </div>
         </div>
       </NeoBrutalistModal>
+
+      {/* Batch Questions Modal */}
+      <BatchQuestionsModal
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        onAddQuestions={handleAddBatchQuestions}
+      />
     </div>
   );
 };

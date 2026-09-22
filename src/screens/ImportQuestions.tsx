@@ -7,6 +7,11 @@ import type { Question } from '@/types';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard';
 import NeoBrutalistBadge from '@/components/ui/NeoBrutalistBadge';
+import {
+  parseBatchQuestions,
+  CHATGPT_PROMPT_TEMPLATE,
+  SAMPLE_QUESTIONS_TEXT,
+} from '@/lib/questionParser';
 
 interface ParsedRow {
   index: number;
@@ -26,12 +31,13 @@ export const ImportQuestions: React.FC = () => {
   const { id: quizId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'file' | 'text'>('file');
+  const [activeTab, setActiveTab] = useState<'ai' | 'file' | 'text'>('ai');
   const [pasteText, setPasteText] = useState('');
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const validateRow = (row: any, index: number): ParsedRow => {
     const errors: string[] = [];
@@ -100,6 +106,28 @@ export const ImportQuestions: React.FC = () => {
 
   const handleParsePaste = () => {
     if (!pasteText.trim()) return;
+
+    // 1. Try intelligent multi-format / exam / ChatGPT parser
+    const batchRes = parseBatchQuestions(pasteText);
+    if (batchRes.questions.length > 0) {
+      const validated: ParsedRow[] = batchRes.questions.map((q, i) => ({
+        index: i + 1,
+        pergunta: q.text,
+        alternativa_a: q.option_a,
+        alternativa_b: q.option_b,
+        alternativa_c: q.option_c,
+        alternativa_d: q.option_d,
+        resposta: q.correct_answer,
+        tempo: q.time_seconds,
+        pontos: q.base_points,
+        isValid: true,
+        errors: [],
+      }));
+      setParsedRows(validated);
+      return;
+    }
+
+    // 2. Fallback to Papa.parse for raw CSV
     Papa.parse(pasteText, {
       header: true,
       skipEmptyLines: true,
@@ -108,6 +136,31 @@ export const ImportQuestions: React.FC = () => {
         setParsedRows(validated);
       },
     });
+  };
+
+  const handleLoadSample = () => {
+    setPasteText(SAMPLE_QUESTIONS_TEXT);
+    const res = parseBatchQuestions(SAMPLE_QUESTIONS_TEXT);
+    const validated: ParsedRow[] = res.questions.map((q, i) => ({
+      index: i + 1,
+      pergunta: q.text,
+      alternativa_a: q.option_a,
+      alternativa_b: q.option_b,
+      alternativa_c: q.option_c,
+      alternativa_d: q.option_d,
+      resposta: q.correct_answer,
+      tempo: q.time_seconds,
+      pontos: q.base_points,
+      isValid: true,
+      errors: [],
+    }));
+    setParsedRows(validated);
+  };
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(CHATGPT_PROMPT_TEMPLATE);
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 2500);
   };
 
   const validQuestions = parsedRows.filter((r) => r.isValid);
@@ -165,7 +218,14 @@ export const ImportQuestions: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <NeoBrutalistButton
+          variant={activeTab === 'ai' ? 'primary' : 'ghost'}
+          size="md"
+          onClick={() => setActiveTab('ai')}
+        >
+          🤖 IA / TEXTO LIVRE (CHATGPT / PROVAS)
+        </NeoBrutalistButton>
         <NeoBrutalistButton
           variant={activeTab === 'file' ? 'primary' : 'ghost'}
           size="md"
@@ -178,11 +238,106 @@ export const ImportQuestions: React.FC = () => {
           size="md"
           onClick={() => setActiveTab('text')}
         >
-          📋 COLAR TEXTO CSV
+          📋 TABELADO / DELIMITADO (| ou ;)
         </NeoBrutalistButton>
       </div>
 
-      {/* Tab 1: File Upload */}
+      {/* Tab 1: AI / Free Text / Word */}
+      {activeTab === 'ai' && (
+        <NeoBrutalistCard style={{ padding: '1.75rem', marginBottom: '2rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div>
+              <label style={{ display: 'block', fontWeight: 900, fontFamily: 'var(--font-heading)', fontSize: '1rem' }}>
+                COLE QUESTÕES NO FORMATO NATURAL OU GERADAS POR IA:
+              </label>
+              <span style={{ fontSize: '0.85rem', color: '#555' }}>
+                Reconhece automaticamente números, opções A/B/C/D e gabaritos.
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={handleCopyPrompt}
+                style={{
+                  background: '#FFD600',
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '2px 2px 0 #0A0A0A',
+                  padding: '0.4rem 0.75rem',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {copiedPrompt ? '✅ PROMPT COPIADO!' : '🤖 COPIAR PROMPT P/ CHATGPT'}
+              </button>
+              <button
+                type="button"
+                onClick={handleLoadSample}
+                style={{
+                  background: '#FFFFFF',
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '2px 2px 0 #0A0A0A',
+                  padding: '0.4rem 0.75rem',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                ✨ CARREGAR EXEMPLO
+              </button>
+            </div>
+          </div>
+
+          <textarea
+            className="neo-input"
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={`1. Qual é a capital do Brasil?\nA) São Paulo\nB) Rio de Janeiro\nC) Brasília\nD) Salvador\nResposta: C\n\n2. Quem escreveu Dom Casmurro?\nA) Machado de Assis\nB) José de Alencar\nC) Clarice Lispector\nD) Carlos Drummond\nResposta: A`}
+            rows={8}
+            style={{ width: '100%', padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.9rem', marginBottom: '1rem', resize: 'vertical' }}
+          />
+
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <NeoBrutalistButton variant="primary" size="md" onClick={handleParsePaste}>
+              🔍 IDENTIFICAR E PROCESSAR QUESTÕES
+            </NeoBrutalistButton>
+            {pasteText && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPasteText('');
+                  setParsedRows([]);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#666',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Limpar texto
+              </button>
+            )}
+          </div>
+        </NeoBrutalistCard>
+      )}
+
+      {/* Tab 2: File Upload */}
       {activeTab === 'file' && (
         <NeoBrutalistCard style={{ padding: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
           <input
@@ -210,22 +365,22 @@ export const ImportQuestions: React.FC = () => {
         </NeoBrutalistCard>
       )}
 
-      {/* Tab 2: Paste CSV */}
+      {/* Tab 3: Delimited Text */}
       {activeTab === 'text' && (
         <NeoBrutalistCard style={{ padding: '1.5rem', marginBottom: '2rem' }}>
           <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem' }}>
-            COLE O CONTEÚDO CSV / TABELADO AQUI:
+            COLE LINHAS SEPARADAS POR BARRA (|), PONTO-E-VÍRGULA (;) OU TABULAÇÃO:
           </label>
           <textarea
             className="neo-input"
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
-            placeholder={`pergunta,alternativa_a,alternativa_b,alternativa_c,alternativa_d,resposta,tempo,pontos\n"Qual a capital do Brasil?","SP","RJ","Brasilia","BH","C",20,100`}
+            placeholder={`Qual a capital do Brasil? | São Paulo | Rio de Janeiro | Brasília | Salvador | C | 30 | 100\nQual o maior planeta? | Terra | Marte | Júpiter | Saturno | C | 30 | 100`}
             rows={6}
             style={{ width: '100%', padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.9rem', marginBottom: '1rem' }}
           />
           <NeoBrutalistButton variant="secondary" size="md" onClick={handleParsePaste}>
-            PROCESSAR TEXTO
+            PROCESSAR LINHAS
           </NeoBrutalistButton>
         </NeoBrutalistCard>
       )}

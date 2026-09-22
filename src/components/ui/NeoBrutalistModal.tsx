@@ -1,7 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type ModalSize = 'sm' | 'md' | 'lg';
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface NeoBrutalistModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface NeoBrutalistModalProps {
   title?: string;
   children: React.ReactNode;
   size?: ModalSize;
+  maxWidth?: string;
   showClose?: boolean;
 }
 
@@ -16,6 +17,7 @@ const sizeWidths: Record<ModalSize, string> = {
   sm: '400px',
   md: '580px',
   lg: '760px',
+  xl: '920px',
 };
 
 const NeoBrutalistModal: React.FC<NeoBrutalistModalProps> = ({
@@ -24,6 +26,7 @@ const NeoBrutalistModal: React.FC<NeoBrutalistModalProps> = ({
   title,
   children,
   size = 'md',
+  maxWidth,
   showClose = true,
 }) => {
   return (
@@ -55,7 +58,7 @@ const NeoBrutalistModal: React.FC<NeoBrutalistModalProps> = ({
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                width: sizeWidths[size],
+                width: maxWidth || sizeWidths[size],
                 maxWidth: '95vw',
                 maxHeight: '90vh',
                 overflowY: 'auto',
