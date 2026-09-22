@@ -55,7 +55,7 @@ export type GameState =
   | 'final_reveal'
   | 'finished';
 
-export type GameMode = 'classic' | 'race' | 'strategy' | 'chaos' | 'team' | 'speed' | 'practice';
+export type GameMode = 'classic' | 'race' | 'strategy' | 'chaos' | 'team' | 'speed' | 'practice' | 'rpg';
 
 export interface GameSettings {
   mode?: GameMode;
@@ -68,6 +68,104 @@ export interface GameSettings {
   soundEnabled: boolean;
   showRankingAfterQuestion: boolean;
   specialQuestionsEnabled: boolean;
+  // RPG Specific Settings
+  mapId?: string;
+  rpgVictoryCondition?: 'hybrid' | 'first_to_finish' | 'highest_xp';
+  xpPerTile?: number;
+  eventsEnabled?: boolean;
+  abilitiesEnabled?: boolean;
+  bossEnabled?: boolean;
+  minXpForVictory?: number;
+}
+
+// ─── RPG Game Types ───────────────────────────────────────────────────────
+
+export type RPGTileType =
+  | 'start'
+  | 'normal'
+  | 'turbo'
+  | 'treasure'
+  | 'shield'
+  | 'portal'
+  | 'battle'
+  | 'boss'
+  | 'shortcut'
+  | 'comeback'
+  | 'castle';
+
+export interface RPGTile {
+  id: string;
+  index: number;
+  type: RPGTileType;
+  label: string;
+  icon: string;
+  x: number; // percentage 0 - 100 for responsive SVG / canvas layout
+  y: number; // percentage 0 - 100
+  color?: string;
+  description: string;
+  effectLabel?: string;
+  bonusMovement?: number;
+  bonusXp?: number;
+  nextIndices?: number[];
+  branchLabel?: string;
+}
+
+export interface RPGMap {
+  id: string;
+  name: string;
+  description: string;
+  theme: string;
+  tiles: RPGTile[];
+  totalTiles: number;
+  bossIndices: number[];
+  castleIndex: number;
+}
+
+export interface RPGAbility {
+  id: string;
+  type: 'shield' | 'turbo' | 'precision' | 'portal';
+  name: string;
+  icon: string;
+  description: string;
+  used: boolean;
+}
+
+export interface RPGTeamState {
+  teamId: string;
+  currentTileIndex: number;
+  pathHistory: number[];
+  xp: number;
+  totalMovement: number;
+  overtakesCount: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  streak: number;
+  maxStreak: number;
+  abilities: RPGAbility[];
+  resources: {
+    gems: number;
+    shields: number;
+    turbos: number;
+  };
+  level: number;
+  title: string;
+}
+
+export interface RPGCampaignProfile {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  totalXp: number;
+  level: number;
+  title: string;
+  victories: number;
+  matchesPlayed: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  highestStreak: number;
+  overtakes: number;
+  tilesTraveled: number;
 }
 
 export interface Game {

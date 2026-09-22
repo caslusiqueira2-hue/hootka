@@ -38,7 +38,8 @@ export const ScoreAnimation: React.FC = () => {
   const { id: gameId } = useParams<{ id: string }>();
 
   const active = useGameStore((s) => s.active);
-  const { teams } = active;
+  const { teams, game } = active;
+  const isRPG = game?.mode === 'rpg';
 
   // Retrieve stored scores from AnswerRegistration
   const storedBreakdowns: Record<string, any> = JSON.parse(
@@ -71,17 +72,25 @@ export const ScoreAnimation: React.FC = () => {
 
   const [showUpdating, setShowUpdating] = useState(false);
 
+  const handleProceed = () => {
+    if (isRPG) {
+      navigate(`/game/${gameId}/rpg-board`);
+    } else {
+      navigate(`/game/${gameId}/ranking`);
+    }
+  };
+
   useEffect(() => {
     soundEngine.playCorrect();
 
     const t1 = setTimeout(() => setShowUpdating(true), totalRevealMs);
-    const t2 = setTimeout(() => navigate(`/game/${gameId}/ranking`), totalRevealMs + 1800);
+    const t2 = setTimeout(handleProceed, totalRevealMs + 1800);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [gameId, navigate, totalRevealMs]);
+  }, [gameId, isRPG, totalRevealMs]);
 
   return (
     <div
@@ -262,13 +271,16 @@ export const ScoreAnimation: React.FC = () => {
       {/* Updating Footer */}
       <div
         style={{
-          height: '80px',
+          minHeight: '80px',
+          padding: '1rem 2rem',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           background: '#0A0A0A',
           color: '#FFFFFF',
           borderTop: '4px solid #0A0A0A',
+          flexWrap: 'wrap',
+          gap: '1rem',
         }}
       >
         <AnimatePresence>
@@ -282,16 +294,35 @@ export const ScoreAnimation: React.FC = () => {
                 gap: '0.75rem',
                 fontFamily: 'var(--font-heading)',
                 fontWeight: 900,
-                fontSize: '1.35rem',
+                fontSize: '1.25rem',
                 letterSpacing: '0.06em',
                 color: '#FFD600',
               }}
             >
-              <span>ATUALIZANDO RANKING...</span>
-              <span>🔄</span>
+              <span>{isRPG ? 'AVANÇANDO NO TABULEIRO DO REINO...' : 'ATUALIZANDO RANKING...'}</span>
+              <span>{isRPG ? '🗺️' : '📈'}</span>
             </motion.div>
           )}
         </AnimatePresence>
+
+        <button
+          onClick={handleProceed}
+          style={{
+            marginLeft: 'auto',
+            background: isRPG ? '#00C851' : '#FFD600',
+            color: isRPG ? '#FFFFFF' : '#0A0A0A',
+            border: '2px solid #FFFFFF',
+            boxShadow: '3px 3px 0 #FFFFFF',
+            padding: '0.6rem 1.4rem',
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 900,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+          }}
+        >
+          {isRPG ? 'IR PARA O TABULEIRO ➔' : 'IR PARA O RANKING ➔'}
+        </button>
       </div>
     </div>
   );

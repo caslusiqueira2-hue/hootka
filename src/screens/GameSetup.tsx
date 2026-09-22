@@ -1,18 +1,18 @@
-﻿import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { useGameStore } from '@/stores/gameStore'
-import type { GameMode, GameSettings } from '@/types'
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useGameStore } from '@/stores/gameStore';
+import type { GameMode, GameSettings } from '@/types';
 
 // ─── Mode Card Data ────────────────────────────────────────────────────────
 
 interface ModeInfo {
-  id: GameMode
-  label: string
-  description: string
-  icon: string
-  color: string
-  available: boolean
+  id: GameMode;
+  label: string;
+  description: string;
+  icon: string;
+  color: string;
+  available: boolean;
 }
 
 const MODES: ModeInfo[] = [
@@ -20,7 +20,7 @@ const MODES: ModeInfo[] = [
     id: 'classic',
     label: 'CLÁSSICO',
     description: 'Questões sequenciais, pontuação por acerto e velocidade.',
-    icon: '🏆',
+    icon: '⚡',
     color: '#FFD600',
     available: true,
   },
@@ -28,15 +28,23 @@ const MODES: ModeInfo[] = [
     id: 'team',
     label: 'CORRIDA',
     description: 'Equipes disputam quem marca mais pontos no menor tempo.',
-    icon: '⚡',
+    icon: '🏎️',
     color: '#1A1AFF',
+    available: true,
+  },
+  {
+    id: 'rpg',
+    label: 'HOOTKA RPG',
+    description: 'O Reino do Conhecimento! Acertos viram XP e passos. Eventos, chefões e tabuleiro!',
+    icon: '🗺️',
+    color: '#00C851',
     available: true,
   },
   {
     id: 'speed',
     label: 'ESTRATÉGIA',
     description: 'Apostas e poderes especiais mudam o rumo da partida.',
-    icon: '🧠',
+    icon: '🎯',
     color: '#9B59B6',
     available: false,
   },
@@ -44,15 +52,15 @@ const MODES: ModeInfo[] = [
     id: 'practice',
     label: 'CAOS',
     description: 'Regras inesperadas a cada rodada. Nada é garantido!',
-    icon: '🔥',
+    icon: '🎲',
     color: '#FF3B00',
     available: false,
   },
-]
+];
 
 // ─── Time Pills ────────────────────────────────────────────────────────────
 
-const TIME_OPTIONS = [10, 15, 20, 30, 45, 60]
+const TIME_OPTIONS = [10, 15, 20, 30, 45, 60];
 
 // ─── Toggle Switch ─────────────────────────────────────────────────────────
 
@@ -61,9 +69,9 @@ function Toggle({
   onChange,
   label,
 }: {
-  value: boolean
-  onChange: (v: boolean) => void
-  label: string
+  value: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
 }) {
   return (
     <div
@@ -88,28 +96,27 @@ function Toggle({
         />
       </button>
     </div>
-  )
+  );
 }
 
 // ─── GameSetup Screen ──────────────────────────────────────────────────────
 
 export default function GameSetup() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { pendingSetup, setGameMode, updateSettings } = useGameStore()
+  const navigate = useNavigate();
+  const { pendingSetup, setGameMode, updateSettings } = useGameStore();
 
-  const quiz = pendingSetup.quiz
-  const settings = pendingSetup.settings
-  const [selectedMode, setSelectedMode] = useState<GameMode>(pendingSetup.mode)
+  const quiz = pendingSetup.quiz;
+  const settings = pendingSetup.settings;
+  const [selectedMode, setSelectedMode] = useState<GameMode>(pendingSetup.mode || 'classic');
 
   const handleModeSelect = (mode: GameMode) => {
-    setSelectedMode(mode)
-    setGameMode(mode)
-  }
+    setSelectedMode(mode);
+    setGameMode(mode);
+  };
 
   const handleNext = () => {
-    navigate('/game/lobby')
-  }
+    navigate('/game/lobby');
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] flex flex-col">
@@ -125,7 +132,7 @@ export default function GameSetup() {
             hover:translate-y-[2px] transition-all duration-100 uppercase"
           style={{ border: '3px solid #0A0A0A' }}
         >
-          ← VOLTAR
+          VOLTAR
         </button>
         <div>
           <h1 className="text-3xl font-black tracking-tight uppercase text-white">
@@ -145,9 +152,9 @@ export default function GameSetup() {
           <h2 className="font-black text-xl uppercase mb-6 pb-3 border-b-3 border-[#0A0A0A]" style={{ borderBottom: '3px solid #0A0A0A' }}>
             MODO DE JOGO
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {MODES.map((mode) => {
-              const isSelected = selectedMode === mode.id
+              const isSelected = selectedMode === mode.id;
               return (
                 <motion.button
                   key={mode.id}
@@ -163,27 +170,37 @@ export default function GameSetup() {
                   style={{
                     border: '3px solid #0A0A0A',
                     backgroundColor: isSelected ? mode.color : 'white',
+                    color: isSelected && (mode.id === 'team' || mode.id === 'practice') ? '#FFFFFF' : '#0A0A0A',
                   }}
                 >
                   {!mode.available && (
                     <span
                       className="absolute top-2 right-2 text-xs font-black uppercase px-2 py-0.5
-                        border-2 border-[#0A0A0A] bg-gray-200"
+                        border-2 border-[#0A0A0A] bg-gray-200 text-black"
                       style={{ border: '2px solid #0A0A0A' }}
                     >
                       EM BREVE
                     </span>
                   )}
+                  {mode.id === 'rpg' && (
+                    <span
+                      className="absolute top-2 right-2 text-xs font-black uppercase px-2 py-0.5
+                        border-2 border-[#0A0A0A] bg-[#FFD600] text-black"
+                      style={{ border: '2px solid #0A0A0A' }}
+                    >
+                      NOVO! 🌟
+                    </span>
+                  )}
                   <span className="text-3xl">{mode.icon}</span>
                   <span className="font-black uppercase text-base">{mode.label}</span>
-                  <span className="text-xs text-gray-700 font-medium leading-tight">
+                  <span className={`text-xs font-medium leading-tight ${isSelected && (mode.id === 'team' || mode.id === 'practice') ? 'text-gray-100' : 'text-gray-700'}`}>
                     {mode.description}
                   </span>
                   {isSelected && (
                     <span className="absolute bottom-2 right-2 font-black text-xs">✓ SELECIONADO</span>
                   )}
                 </motion.button>
-              )
+              );
             })}
           </div>
         </div>
@@ -191,11 +208,11 @@ export default function GameSetup() {
         {/* Right: Settings */}
         <div className="lg:w-1/2 p-8 overflow-y-auto">
           <h2 className="font-black text-xl uppercase mb-6 pb-3 border-b-3 border-[#0A0A0A]" style={{ borderBottom: '3px solid #0A0A0A' }}>
-            CONFIGURAÇÕES
+            {selectedMode === 'rpg' ? 'CONFIGURAÇÕES DO MODO RPG 🗺️' : 'CONFIGURAÇÕES DA PARTIDA'}
           </h2>
 
           {/* Time selector */}
-          <div className="mb-8">
+          <div className="mb-6">
             <p className="font-black text-sm uppercase mb-3">TEMPO PADRÃO POR QUESTÃO</p>
             <div className="flex flex-wrap gap-2">
               {TIME_OPTIONS.map((t) => (
@@ -216,7 +233,68 @@ export default function GameSetup() {
             </div>
           </div>
 
-          {/* Toggles */}
+          {/* RPG Specific Controls */}
+          {selectedMode === 'rpg' && (
+            <div
+              className="border-3 border-[#0A0A0A] bg-[#FFF8E7] shadow-[6px_6px_0_#0A0A0A] p-5 mb-6"
+              style={{ border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A' }}
+            >
+              <div className="font-black text-sm uppercase mb-3 text-[#1A1AFF]">
+                🛡️ REGRAS DO REINO DO SABER
+              </div>
+
+              {/* Map Selector */}
+              <div className="mb-4">
+                <label className="font-bold text-xs uppercase block mb-1">MAPA DO TABULEIRO</label>
+                <div className="p-2 border-2 border-[#0A0A0A] bg-white font-black text-sm flex items-center gap-2">
+                  <span>🌲</span> Floresta do Saber (30 Casas)
+                </div>
+              </div>
+
+              {/* Victory Condition Selector */}
+              <div className="mb-4">
+                <label className="font-bold text-xs uppercase block mb-2">CONDIÇÃO DE VITÓRIA</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { id: 'hybrid', label: '🏆 HÍBRIDO (Castelo + Mínimo de XP) [RECOMENDADO]' },
+                    { id: 'highest_xp', label: '⭐ MAIOR XP AO FINAL DO QUIZ' },
+                    { id: 'first_to_finish', label: '🚀 PRIMEIRO A ALCANÇAR O CASTELO' },
+                  ].map((cond) => {
+                    const isCur = (settings.rpgVictoryCondition || 'hybrid') === cond.id;
+                    return (
+                      <button
+                        key={cond.id}
+                        type="button"
+                        onClick={() => updateSettings({ rpgVictoryCondition: cond.id as any })}
+                        className={`text-left p-2.5 border-2 border-[#0A0A0A] font-bold text-xs uppercase transition-all
+                          ${isCur ? 'bg-[#FFD600] shadow-[2px_2px_0_#0A0A0A]' : 'bg-white'}`}
+                      >
+                        {cond.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Toggle
+                label="Eventos no Tabuleiro (Turbo, Portal, Tesouro)"
+                value={settings.eventsEnabled ?? true}
+                onChange={(v) => updateSettings({ eventsEnabled: v })}
+              />
+              <Toggle
+                label="Habilidades Especiais das Equipes"
+                value={settings.abilitiesEnabled ?? true}
+                onChange={(v) => updateSettings({ abilitiesEnabled: v })}
+              />
+              <Toggle
+                label="Desafio do Chefão na Casa 24 (300 XP)"
+                value={settings.bossEnabled ?? true}
+                onChange={(v) => updateSettings({ bossEnabled: v })}
+              />
+            </div>
+          )}
+
+          {/* General Toggles */}
           <div
             className="border-3 border-[#0A0A0A] bg-white shadow-[6px_6px_0_#0A0A0A] p-5"
             style={{ border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A' }}
@@ -232,7 +310,7 @@ export default function GameSetup() {
               onChange={(v) => updateSettings({ specialQuestionsEnabled: v })}
             />
             <Toggle
-              label="Streak (sequência)"
+              label="Streak (sequência de acertos)"
               value={settings.streakEnabled}
               onChange={(v) => updateSettings({ streakEnabled: v })}
             />
@@ -242,19 +320,14 @@ export default function GameSetup() {
               onChange={(v) => updateSettings({ recoveryBonusEnabled: v })}
             />
             <Toggle
-              label="Animações"
+              label="Animações fluidas"
               value={settings.animationsEnabled}
               onChange={(v) => updateSettings({ animationsEnabled: v })}
             />
             <Toggle
-              label="Sons"
+              label="Efeitos sonoros"
               value={settings.soundEnabled}
               onChange={(v) => updateSettings({ soundEnabled: v })}
-            />
-            <Toggle
-              label="Ranking após questão"
-              value={settings.showRankingAfterQuestion}
-              onChange={(v) => updateSettings({ showRankingAfterQuestion: v })}
             />
           </div>
         </div>
@@ -274,9 +347,9 @@ export default function GameSetup() {
             active:translate-x-1.5 active:translate-y-1.5 transition-all duration-100"
           style={{ border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A' }}
         >
-          PRÓXIMO: MONTAR EQUIPES →
+          PRÓXIMO: MONTAR EQUIPES ➔
         </motion.button>
       </footer>
     </div>
-  )
+  );
 }

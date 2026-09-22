@@ -30,6 +30,7 @@ const Lobby            = lazy(() => import('@/screens/Lobby'))
 const QuestionScreen   = lazy(() => import('@/screens/QuestionScreen'))
 const AnswerRegistration = lazy(() => import('@/screens/AnswerRegistration'))
 const ScoreAnimation   = lazy(() => import('@/screens/ScoreAnimation'))
+const RPGMovementScreen = lazy(() => import('@/screens/RPGMovementScreen'))
 const RankingScreen    = lazy(() => import('@/screens/RankingScreen'))
 const FinalReveal      = lazy(() => import('@/screens/FinalReveal'))
 const Podium           = lazy(() => import('@/screens/Podium'))
@@ -315,6 +316,16 @@ function AnimatedRoutes() {
             <PageWrapper>
               <Suspense fallback={<PageLoader />}>
                 <ScoreAnimation />
+              </Suspense>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/game/:id/rpg-board"
+          element={
+            <PageWrapper>
+              <Suspense fallback={<PageLoader />}>
+                <RPGMovementScreen />
               </Suspense>
             </PageWrapper>
           }
