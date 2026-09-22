@@ -512,7 +512,7 @@ export const Home: React.FC = () => {
           zIndex: 1,
         }}
       >
-        Todos os direitos reservados Christian Siqueira.
+        © Todos os direitos reservados Christian Siqueira.
       </footer>
 
       {/* Interactive RPG Demo Simulator Modal */}
