@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useState, Suspense, lazy } from 'react'
-import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -30,7 +30,6 @@ const Lobby            = lazy(() => import('@/screens/Lobby'))
 const QuestionScreen   = lazy(() => import('@/screens/QuestionScreen'))
 const AnswerRegistration = lazy(() => import('@/screens/AnswerRegistration'))
 const ScoreAnimation   = lazy(() => import('@/screens/ScoreAnimation'))
-const RPGMovementScreen = lazy(() => import('@/screens/RPGMovementScreen'))
 const RankingScreen    = lazy(() => import('@/screens/RankingScreen'))
 const FinalReveal      = lazy(() => import('@/screens/FinalReveal'))
 const Podium           = lazy(() => import('@/screens/Podium'))
@@ -321,16 +320,6 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/game/:id/rpg-board"
-          element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <RPGMovementScreen />
-              </Suspense>
-            </PageWrapper>
-          }
-        />
-        <Route
           path="/game/:id/ranking"
           element={
             <PageWrapper>
@@ -393,6 +382,7 @@ function AnimatedRoutes() {
 // ─── App (inner, has access to router context) ────────────────────────────
 
 function AppInner() {
+  const navigate = useNavigate()
   const loadSettings = useSettingsStore((s) => s.loadSettings)
   const loadGame     = useGameStore((s) => s.loadGame)
   const resetGame    = useGameStore((s) => s.resetGame)
@@ -432,12 +422,17 @@ function AppInner() {
     if (!activeGame) return
     setShowRecovery(false)
     await loadGame(activeGame.id)
-    // Navigation to the correct screen is handled by each game screen
-    // via the gamePhase from the store. The game screens will redirect
-    // themselves based on the restored phase.
+    const screen = activeGame.state === 'finished' ? 'final' :
+      activeGame.state === 'lobby' ? 'question' :
+      activeGame.state === 'answer_registration' ? 'answers' :
+      activeGame.state === 'score_reveal' || activeGame.state === 'calculating_score' ? 'score' :
+      activeGame.state === 'ranking_animation' ? 'ranking' :
+      activeGame.state === 'final_reveal' ? 'final' : 'question'
+    navigate(`/game/${activeGame.id}/${screen}`)
   }
 
-  const handleDiscard = () => {
+  const handleDiscard = async () => {
+    if (activeGame) await api.game.finish(activeGame.id)
     resetGame()
     setShowRecovery(false)
     setActiveGame(null)

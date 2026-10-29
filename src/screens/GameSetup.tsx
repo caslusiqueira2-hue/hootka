@@ -33,14 +33,6 @@ const MODES: ModeInfo[] = [
     available: true,
   },
   {
-    id: 'rpg',
-    label: 'HOOTKA RPG',
-    description: 'O Reino do Conhecimento! Acertos viram XP e passos. Eventos, chefões e tabuleiro!',
-    icon: '🗺️',
-    color: '#00C851',
-    available: true,
-  },
-  {
     id: 'speed',
     label: 'ESTRATÉGIA',
     description: 'Apostas e poderes especiais mudam o rumo da partida.',
@@ -182,15 +174,6 @@ export default function GameSetup() {
                       EM BREVE
                     </span>
                   )}
-                  {mode.id === 'rpg' && (
-                    <span
-                      className="absolute top-2 right-2 text-xs font-black uppercase px-2 py-0.5
-                        border-2 border-[#0A0A0A] bg-[#FFD600] text-black"
-                      style={{ border: '2px solid #0A0A0A' }}
-                    >
-                      NOVO! 🌟
-                    </span>
-                  )}
                   <span className="text-3xl">{mode.icon}</span>
                   <span className="font-black uppercase text-base">{mode.label}</span>
                   <span className={`text-xs font-medium leading-tight ${isSelected && (mode.id === 'team' || mode.id === 'practice') ? 'text-gray-100' : 'text-gray-700'}`}>
@@ -208,7 +191,7 @@ export default function GameSetup() {
         {/* Right: Settings */}
         <div className="lg:w-1/2 p-8 overflow-y-auto">
           <h2 className="font-black text-xl uppercase mb-6 pb-3 border-b-3 border-[#0A0A0A]" style={{ borderBottom: '3px solid #0A0A0A' }}>
-            {selectedMode === 'rpg' ? 'CONFIGURAÇÕES DO MODO RPG 🗺️' : 'CONFIGURAÇÕES DA PARTIDA'}
+            CONFIGURAÇÕES DA PARTIDA
           </h2>
 
           {/* Time selector */}
@@ -233,66 +216,6 @@ export default function GameSetup() {
             </div>
           </div>
 
-          {/* RPG Specific Controls */}
-          {selectedMode === 'rpg' && (
-            <div
-              className="border-3 border-[#0A0A0A] bg-[#FFF8E7] shadow-[6px_6px_0_#0A0A0A] p-5 mb-6"
-              style={{ border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A' }}
-            >
-              <div className="font-black text-sm uppercase mb-3 text-[#1A1AFF]">
-                🛡️ REGRAS DO REINO DO SABER
-              </div>
-
-              {/* Map Selector */}
-              <div className="mb-4">
-                <label className="font-bold text-xs uppercase block mb-1">MAPA DO TABULEIRO</label>
-                <div className="p-2 border-2 border-[#0A0A0A] bg-white font-black text-sm flex items-center gap-2">
-                  <span>🌲</span> Floresta do Saber (30 Casas)
-                </div>
-              </div>
-
-              {/* Victory Condition Selector */}
-              <div className="mb-4">
-                <label className="font-bold text-xs uppercase block mb-2">CONDIÇÃO DE VITÓRIA</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {[
-                    { id: 'hybrid', label: '🏆 HÍBRIDO (Castelo + Mínimo de XP) [RECOMENDADO]' },
-                    { id: 'highest_xp', label: '⭐ MAIOR XP AO FINAL DO QUIZ' },
-                    { id: 'first_to_finish', label: '🚀 PRIMEIRO A ALCANÇAR O CASTELO' },
-                  ].map((cond) => {
-                    const isCur = (settings.rpgVictoryCondition || 'hybrid') === cond.id;
-                    return (
-                      <button
-                        key={cond.id}
-                        type="button"
-                        onClick={() => updateSettings({ rpgVictoryCondition: cond.id as any })}
-                        className={`text-left p-2.5 border-2 border-[#0A0A0A] font-bold text-xs uppercase transition-all
-                          ${isCur ? 'bg-[#FFD600] shadow-[2px_2px_0_#0A0A0A]' : 'bg-white'}`}
-                      >
-                        {cond.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Toggle
-                label="Eventos no Tabuleiro (Turbo, Portal, Tesouro)"
-                value={settings.eventsEnabled ?? true}
-                onChange={(v) => updateSettings({ eventsEnabled: v })}
-              />
-              <Toggle
-                label="Habilidades Especiais das Equipes"
-                value={settings.abilitiesEnabled ?? true}
-                onChange={(v) => updateSettings({ abilitiesEnabled: v })}
-              />
-              <Toggle
-                label="Desafio do Chefão na Casa 24 (300 XP)"
-                value={settings.bossEnabled ?? true}
-                onChange={(v) => updateSettings({ bossEnabled: v })}
-              />
-            </div>
-          )}
 
           {/* General Toggles */}
           <div
