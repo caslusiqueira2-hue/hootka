@@ -3,6 +3,8 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useQuizStore } from '@/stores/quizStore';
 
+let authSubscription: { unsubscribe: () => void } | null = null;
+
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -34,17 +36,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         loading: false,
       });
 
-      supabase.auth.onAuthStateChange((_event, session) => {
+      authSubscription?.unsubscribe();
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         set({
           session,
           user: session?.user ?? null,
           loading: false,
           guestMode: false,
         });
-        try {
-          useQuizStore.getState().loadQuizzes();
-        } catch {}
+        // Supabase invokes this callback while holding its auth lock. Defer
+        // calls that use getSession() to avoid deadlocking login and logout.
+        setTimeout(() => { void useQuizStore.getState().loadQuizzes(); }, 0);
       });
+      authSubscription = subscription;
     } catch (err: any) {
       console.error('Error initializing auth:', err);
       set({ loading: false });
@@ -76,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({
         session: data.session,
-        user: data.user,
+        user: data.session?.user ?? null,
         loading: false,
         guestMode: false,
         error: null,
@@ -106,7 +110,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({
         session: data.session,
-        user: data.user,
+        user: data.session?.user ?? null,
         loading: false,
         guestMode: false,
         error: null,

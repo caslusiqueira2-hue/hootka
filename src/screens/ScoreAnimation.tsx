@@ -39,7 +39,6 @@ export const ScoreAnimation: React.FC = () => {
 
   const active = useGameStore((s) => s.active);
   const { teams, game } = active;
-  const isRPG = game?.mode === 'rpg';
 
   // Retrieve stored scores from AnswerRegistration
   const storedBreakdowns: Record<string, any> = JSON.parse(
@@ -73,11 +72,7 @@ export const ScoreAnimation: React.FC = () => {
   const [showUpdating, setShowUpdating] = useState(false);
 
   const handleProceed = () => {
-    if (isRPG) {
-      navigate(`/game/${gameId}/rpg-board`);
-    } else {
-      navigate(`/game/${gameId}/ranking`);
-    }
+    navigate(`/game/${gameId}/ranking`);
   };
 
   useEffect(() => {
@@ -90,7 +85,7 @@ export const ScoreAnimation: React.FC = () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [gameId, isRPG, totalRevealMs]);
+  }, [gameId, totalRevealMs]);
 
   return (
     <div
@@ -299,8 +294,8 @@ export const ScoreAnimation: React.FC = () => {
                 color: '#FFD600',
               }}
             >
-              <span>{isRPG ? 'AVANÇANDO NO TABULEIRO DO REINO...' : 'ATUALIZANDO RANKING...'}</span>
-              <span>{isRPG ? '🗺️' : '📈'}</span>
+              <span>ATUALIZANDO RANKING...</span>
+              <span>📈</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -309,8 +304,8 @@ export const ScoreAnimation: React.FC = () => {
           onClick={handleProceed}
           style={{
             marginLeft: 'auto',
-            background: isRPG ? '#00C851' : '#FFD600',
-            color: isRPG ? '#FFFFFF' : '#0A0A0A',
+            background: '#FFD600',
+            color: '#0A0A0A',
             border: '2px solid #FFFFFF',
             boxShadow: '3px 3px 0 #FFFFFF',
             padding: '0.6rem 1.4rem',
@@ -321,7 +316,7 @@ export const ScoreAnimation: React.FC = () => {
             textTransform: 'uppercase',
           }}
         >
-          {isRPG ? 'IR PARA O TABULEIRO ➔' : 'IR PARA O RANKING ➔'}
+          IR PARA O RANKING ➔
         </button>
       </div>
     </div>

@@ -35,6 +35,7 @@ export const Lobby: React.FC = () => {
   const [teamColor, setTeamColor] = useState('#FF3B00');
   const [teamIdentifier, setTeamIdentifier] = useState('');
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const openAddTeam = () => {
     setEditingIndex(null);
@@ -108,7 +109,13 @@ export const Lobby: React.FC = () => {
     }
 
     setStarting(true);
+    setStartError(null);
     try {
+      const quizQuestions = await api.question.getByQuiz(pendingSetup.quiz.id);
+      if (quizQuestions.length === 0) {
+        setStartError('Este quiz não tem perguntas. Adicione ao menos uma pergunta antes de jogar.');
+        return;
+      }
       // 1. Create game in SQLite / DB
       const { id: gameId } = await api.game.create({
         quiz_id: pendingSetup.quiz.id,
@@ -125,6 +132,9 @@ export const Lobby: React.FC = () => {
 
       // 2. Fetch the created game with snapshot questions
       const game = await api.game.getById(gameId);
+      if (!game || !game.questions?.length) {
+        throw new Error('Não foi possível carregar as perguntas da partida.');
+      }
 
       // 3. Update game state to question
       await api.game.updateState(gameId, 'question', {
@@ -134,7 +144,7 @@ export const Lobby: React.FC = () => {
 
       // 4. Update Zustand store
       setActiveGame(
-        game,
+        { ...game, state: 'question', current_question_index: 0 },
         game.teams || teams.map((t) => ({ ...t, game_id: gameId, score: 0, streak: 0, order_index: 0 })),
         game.questions || []
       );
@@ -142,13 +152,15 @@ export const Lobby: React.FC = () => {
       // 5. Navigate to the question screen
       navigate(`/game/${gameId}/question`);
     } catch (err: any) {
-      alert('Erro ao iniciar jogo: ' + err.message);
+      setStartError('Erro ao iniciar jogo: ' + (err.message || 'tente novamente'));
+    } finally {
       setStarting(false);
     }
   };
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+      {startError && <p role="alert" style={{ color: '#b00020', fontWeight: 800 }}>{startError}</p>}
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

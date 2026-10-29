@@ -9,8 +9,6 @@ import type { Quiz, Game } from '@/types';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard';
 import NeoBrutalistBadge from '@/components/ui/NeoBrutalistBadge';
-import { RPGDemoModal } from '@/components/rpg/RPGDemoModal';
-import { RPGCampaignModal } from '@/components/rpg/RPGCampaignModal';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -19,8 +17,6 @@ export const Home: React.FC = () => {
   const { user, signOut } = useAuthStore();
   const [activeGame, setActiveGame] = useState<Game | null>(null);
 
-  const [showDemoModal, setShowDemoModal] = useState(false);
-  const [showCampaignModal, setShowCampaignModal] = useState(false);
 
   useEffect(() => {
     loadQuizzes();
@@ -103,7 +99,7 @@ export const Home: React.FC = () => {
             <NeoBrutalistButton
               variant="primary"
               size="sm"
-              onClick={() => navigate(activeGame.mode === 'rpg' ? `/game/${activeGame.id}/rpg-board` : `/game/${activeGame.id}/question`)}
+              onClick={() => navigate(`/game/${activeGame.id}/question`)}
             >
               CONTINUAR PARTIDA ➔
             </NeoBrutalistButton>
@@ -242,92 +238,6 @@ export const Home: React.FC = () => {
           <p style={{ color: '#666', fontSize: '0.95rem', fontWeight: 600, marginTop: '0.25rem' }}>
             Game show para sala de aula com cards físicos A/B/C/D • 100% sem internet • Sem celular dos alunos
           </p>
-        </motion.div>
-
-        {/* RPG Featured Feature Card */}
-        <motion.div
-          initial={{ scale: 0.96, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          style={{
-            width: '100%',
-            maxWidth: '900px',
-            marginBottom: '2.5rem',
-          }}
-        >
-          <NeoBrutalistCard
-            style={{
-              padding: '1.5rem 2rem',
-              background: '#00C851',
-              color: '#FFFFFF',
-              border: '4px solid #0A0A0A',
-              boxShadow: '8px 8px 0 #0A0A0A',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontSize: '2.5rem' }}>🗺️</span>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <h2
-                      style={{
-                        margin: 0,
-                        fontFamily: 'var(--font-heading)',
-                        fontWeight: 900,
-                        fontSize: '1.6rem',
-                        letterSpacing: '0.03em',
-                        textTransform: 'uppercase',
-                        color: '#0A0A0A',
-                      }}
-                    >
-                      HOOTKA RPG: O REINO DO CONHECIMENTO
-                    </h2>
-                    <NeoBrutalistBadge variant="primary">
-                      NOVO MODO DE JOGO!
-                    </NeoBrutalistBadge>
-                  </div>
-                  <p style={{ margin: '0.25rem 0 0', fontWeight: 800, fontSize: '0.95rem', color: '#0A0A0A' }}>
-                    PERGUNTAS ➔ ACERTOS ➔ XP ➔ MOVIMENTO NO MAPA ➔ EVENTOS ➔ CHEFÃO ➔ CASTELO!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#0A0A0A', lineHeight: 1.4 }}>
-              Transforme qualquer quiz existente numa jornada de tabuleiro medieval projetada para sala de aula! Sem dados aleatórios: avanço 100% fundamentado em mérito pedagógico.
-            </p>
-
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-              <NeoBrutalistButton
-                variant="primary"
-                size="md"
-                onClick={() => setShowDemoModal(true)}
-                style={{ background: '#FFD600', color: '#0A0A0A' }}
-              >
-                🎮 TESTAR DEMO INTERATIVA (1-CLIQUE)
-              </NeoBrutalistButton>
-
-              <NeoBrutalistButton
-                variant="ghost"
-                size="md"
-                onClick={() => setShowCampaignModal(true)}
-                style={{ background: '#FFFFFF', color: '#0A0A0A' }}
-              >
-                📜 CRÔNICAS E PROGRESSÃO DA TURMA
-              </NeoBrutalistButton>
-
-              <NeoBrutalistButton
-                variant="ghost"
-                size="md"
-                onClick={() => navigate('/game/new')}
-                style={{ background: '#1A1AFF', color: '#FFFFFF' }}
-              >
-                ⚔️ JOGAR MODO RPG AGORA
-              </NeoBrutalistButton>
-            </div>
-          </NeoBrutalistCard>
         </motion.div>
 
         {/* Action Buttons Grid */}
@@ -515,18 +425,7 @@ export const Home: React.FC = () => {
         © Todos os direitos reservados Christian Siqueira.
       </footer>
 
-      {/* Interactive RPG Demo Simulator Modal */}
-      <RPGDemoModal
-        isOpen={showDemoModal}
-        onClose={() => setShowDemoModal(false)}
-      />
-
-      {/* Persistent Campaign Chronicles Modal */}
-      <RPGCampaignModal
-        isOpen={showCampaignModal}
-        onClose={() => setShowCampaignModal(false)}
-      />
-    </div>
+          </div>
   );
 };
 
