@@ -174,15 +174,9 @@ export default function FinalReveal() {
   // Reversed order for reveal (last → first)
   const revealOrder = [...ranking].reverse();
 
-  const [phase, setPhase] = useState<Phase>('title')
-  const [revealedCount, setRevealedCount] = useState(0)
+  const [phase, setPhase] = useState<Phase>('done')
+  const [revealedCount, setRevealedCount] = useState(ranking.length)
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Phase transitions
-  useEffect(() => {
-    const t = setTimeout(() => setPhase('calculating'), 1800)
-    return () => clearTimeout(t)
-  }, [])
 
   useEffect(() => {
     if (phase !== 'calculating') return
