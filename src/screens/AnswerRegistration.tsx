@@ -118,6 +118,11 @@ export const AnswerRegistration: React.FC = () => {
         },
       }));
 
+      await api.game.updateState(game.id, 'score_reveal', {
+        teams: updatedTeams,
+        current_question_index: currentQuestionIndex,
+      });
+
       // Navigate to score reveal screen
       navigate(`/game/${game.id}/score`);
     } catch (err: any) {
@@ -286,3 +291,4 @@ export const AnswerRegistration: React.FC = () => {
 };
 
 export default AnswerRegistration;
+

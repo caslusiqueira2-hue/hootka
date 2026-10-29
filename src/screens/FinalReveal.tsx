@@ -163,19 +163,13 @@ export default function FinalReveal() {
 
   const activeTeams = useGameStore((s) => s.active.teams);
   const sorted = [...activeTeams].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  const ranking: FinalEntry[] = sorted.length > 0 ? sorted.map((t, idx) => ({
+  const ranking: FinalEntry[] = sorted.map((t, idx) => ({
     rank: idx + 1,
     teamName: t.name,
     teamEmoji: t.emoji,
     teamColor: t.color,
     totalScore: t.score ?? 0,
-  })) : [
-    { rank: 1, teamName: 'Raposas', teamEmoji: '🦊', teamColor: '#FFD700', totalScore: 1240 },
-    { rank: 2, teamName: 'Leões', teamEmoji: '🦁', teamColor: '#FF6B6B', totalScore: 1110 },
-    { rank: 3, teamName: 'Lobos', teamEmoji: '🐺', teamColor: '#4ECDC4', totalScore: 980 },
-    { rank: 4, teamName: 'Tigres', teamEmoji: '🐯', teamColor: '#FFD600', totalScore: 740 },
-    { rank: 5, teamName: 'Águias', teamEmoji: '🦅', teamColor: '#00C851', totalScore: 610 },
-  ];
+  }));
 
   // Reversed order for reveal (last → first)
   const revealOrder = [...ranking].reverse();
@@ -343,3 +337,4 @@ export default function FinalReveal() {
     </div>
   )
 }
+

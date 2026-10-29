@@ -12,6 +12,7 @@ export const isElectron = typeof window !== 'undefined' && Boolean(window.hootka
 const MOCK_QUIZZES_KEY = 'hootka_mock_quizzes';
 const MOCK_GAMES_KEY = 'hootka_mock_games';
 const MOCK_SETTINGS_KEY = 'hootka_mock_settings';
+const answersKey = (gameId: string) => `hootka_answers_${gameId}`;
 
 function withLocalQuestionCount(quizzes: Quiz[]): Quiz[] {
   return quizzes.map((quiz) => {
@@ -300,12 +301,14 @@ export const api = {
 
     getStats: async (id: string): Promise<any> => {
       if (isElectron) return window.hootka.game.getStats(id);
+      const answers = await api.answer.getByGame(id);
+      const totalCorrect = answers.filter((answer) => Boolean(answer.correct)).length;
       return {
         teamStats: [],
         questionStats: [],
-        totalCorrect: 0,
-        totalAnswers: 0,
-        accuracy: '75.0',
+        totalCorrect,
+        totalAnswers: answers.length,
+        accuracy: answers.length ? ((totalCorrect / answers.length) * 100).toFixed(1) : '0.0',
       };
     },
   },
@@ -333,15 +336,23 @@ export const api = {
   answer: {
     saveAnswers: async (answers: Answer[]): Promise<{ success: boolean }> => {
       if (isElectron) return window.hootka.answer.saveAnswers(answers);
+      if (!answers.length) return { success: true };
+      const key = answersKey(answers[0].game_id);
+      const existing: Answer[] = JSON.parse(localStorage.getItem(key) || '[]');
+      const updated = existing.filter((old) => !answers.some((answer) =>
+        answer.game_question_id === old.game_question_id && answer.team_id === old.team_id
+      ));
+      localStorage.setItem(key, JSON.stringify([...updated, ...answers]));
       return { success: true };
     },
     getByGame: async (gameId: string): Promise<Answer[]> => {
       if (isElectron) return window.hootka.answer.getByGame(gameId);
-      return [];
+      return JSON.parse(localStorage.getItem(answersKey(gameId)) || '[]');
     },
     getByQuestion: async (gameId: string, questionId: string): Promise<Answer[]> => {
       if (isElectron) return window.hootka.answer.getByQuestion(gameId, questionId);
-      return [];
+      const answers = await api.answer.getByGame(gameId);
+      return answers.filter((answer) => answer.game_question_id === questionId);
     },
   },
 
