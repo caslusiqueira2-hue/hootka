@@ -1,15 +1,14 @@
 // ============================================================
-// hootka – Typed API wrapper with Supabase Cloud + Offline Local
+// hootka – Typed API wrapper with Local browser and Electron storage
 // ============================================================
 
 import type {
   Quiz, Question, Game, Team, GameQuestion, Answer,
 } from '../types';
-import { supabase } from './supabase';
 
 export const isElectron = typeof window !== 'undefined' && Boolean(window.hootka);
 
-// Browser mock storage keys
+// Browser storage keys
 const MOCK_QUIZZES_KEY = 'hootka_mock_quizzes';
 const MOCK_GAMES_KEY = 'hootka_mock_games';
 const MOCK_SETTINGS_KEY = 'hootka_mock_settings';
@@ -21,41 +20,12 @@ function withLocalQuestionCount(quizzes: Quiz[]): Quiz[] {
   });
 }
 
-async function getAuthUser() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.user ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export const api = {
   quiz: {
     getAll: async (): Promise<Quiz[]> => {
-      // 1. If user is logged into Supabase, fetch from cloud
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('quizzes')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
 
-          if (!error && data) {
-            const local: Quiz[] = JSON.parse(localStorage.getItem(MOCK_QUIZZES_KEY) || '[]');
-            return withLocalQuestionCount([...data, ...local.filter((quiz) => !data.some((cloud) => cloud.id === quiz.id))]);
-          }
-        } catch (err) {
-          console.warn('Supabase quiz:getAll error, falling back to local:', err);
-        }
-      }
-
-      // 2. If running inside Electron desktop
       if (isElectron) return window.hootka.quiz.getAll();
 
-      // 3. Fallback to localStorage / guest mode
       const raw = localStorage.getItem(MOCK_QUIZZES_KEY);
       if (raw) return withLocalQuestionCount(JSON.parse(raw));
       const demo: Quiz[] = [
@@ -76,21 +46,6 @@ export const api = {
     },
 
     getById: async (id: string): Promise<Quiz | null> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('quizzes')
-            .select('*')
-            .eq('id', id)
-            .eq('user_id', user.id)
-            .single();
-
-          if (!error && data) return data;
-        } catch (err) {
-          console.warn('Supabase quiz:getById fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.quiz.getById(id);
       const quizzes: Quiz[] = JSON.parse(localStorage.getItem(MOCK_QUIZZES_KEY) || '[]');
@@ -98,29 +53,6 @@ export const api = {
     },
 
     create: async (data: Partial<Quiz>): Promise<{ id: string }> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { data: created, error } = await supabase
-            .from('quizzes')
-            .insert({
-              user_id: user.id,
-              name: data.name || 'Novo Quiz',
-              description: data.description || '',
-              subject: data.subject || '',
-              grade: data.grade || '',
-              theme: data.theme || '',
-            })
-            .select('id')
-            .single();
-
-          if (!error && created) {
-            return { id: created.id };
-          }
-        } catch (err) {
-          console.warn('Supabase quiz:create fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.quiz.create(data);
       const quizzes: Quiz[] = JSON.parse(localStorage.getItem(MOCK_QUIZZES_KEY) || '[]');
@@ -142,26 +74,6 @@ export const api = {
     },
 
     update: async (id: string, data: Partial<Quiz>): Promise<{ success: boolean }> => {
-      const user = await getAuthUser();
-      if (user && !id.startsWith('quiz-')) {
-        try {
-          const { error } = await supabase
-            .from('quizzes')
-            .update({
-              name: data.name,
-              description: data.description,
-              subject: data.subject,
-              grade: data.grade,
-              theme: data.theme,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', id)
-            .eq('user_id', user.id);
-          if (!error) return { success: true };
-        } catch (err) {
-          console.warn('Supabase quiz:update fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.quiz.update(id, data);
       const quizzes: Quiz[] = JSON.parse(localStorage.getItem(MOCK_QUIZZES_KEY) || '[]');
@@ -174,19 +86,6 @@ export const api = {
     },
 
     delete: async (id: string): Promise<{ success: boolean }> => {
-      const user = await getAuthUser();
-      if (user && !id.startsWith('quiz-')) {
-        try {
-          const { error } = await supabase
-            .from('quizzes')
-            .delete()
-            .eq('id', id)
-            .eq('user_id', user.id);
-          if (!error) return { success: true };
-        } catch (err) {
-          console.warn('Supabase quiz:delete fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.quiz.delete(id);
       const quizzes: Quiz[] = JSON.parse(localStorage.getItem(MOCK_QUIZZES_KEY) || '[]');
@@ -218,22 +117,6 @@ export const api = {
 
   question: {
     getByQuiz: async (quizId: string): Promise<Question[]> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('questions')
-            .select('*')
-            .eq('quiz_id', quizId)
-            .order('order_index', { ascending: true });
-
-          if (!error && data && data.length > 0) {
-            return data;
-          }
-        } catch (err) {
-          console.warn('Supabase question:getByQuiz fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.question.getByQuiz(quizId);
       const raw = localStorage.getItem(`hootka_questions_${quizId}`);
@@ -258,33 +141,6 @@ export const api = {
     },
 
     create: async (data: Partial<Question>): Promise<{ id: string }> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { data: created, error } = await supabase
-            .from('questions')
-            .insert({
-              quiz_id: data.quiz_id,
-              text: data.text || '',
-              option_a: data.option_a || '',
-              option_b: data.option_b || '',
-              option_c: data.option_c || '',
-              option_d: data.option_d || '',
-              correct_answer: data.correct_answer || 'A',
-              time_seconds: data.time_seconds || 30,
-              base_points: data.base_points || 100,
-              is_special: data.is_special ? 1 : 0,
-              is_wildcard: data.is_wildcard ? 1 : 0,
-              order_index: data.order_index ?? 0,
-            })
-            .select('id')
-            .single();
-
-          if (!error && created) return { id: created.id };
-        } catch (err) {
-          console.warn('Supabase question:create fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.question.create(data);
       const quizId = data.quiz_id || '';
@@ -311,15 +167,6 @@ export const api = {
     },
 
     update: async (id: string, data: Partial<Question>): Promise<{ success: boolean }> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { error } = await supabase.from('questions').update(data).eq('id', id);
-          if (!error && !id.startsWith('q-')) return { success: true };
-        } catch (err) {
-          console.warn('Supabase question:update fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.question.update(id, data);
       const quizId = data.quiz_id;
@@ -335,15 +182,6 @@ export const api = {
     },
 
     delete: async (id: string): Promise<{ success: boolean }> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const { error } = await supabase.from('questions').delete().eq('id', id);
-          if (!error && !id.startsWith('q-')) return { success: true };
-        } catch (err) {
-          console.warn('Supabase question:delete fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.question.delete(id);
       for (const key of Object.keys(localStorage)) {
@@ -369,30 +207,6 @@ export const api = {
     },
 
     importBatch: async (quizId: string, questions: any[]): Promise<{ count: number }> => {
-      const user = await getAuthUser();
-      if (user) {
-        try {
-          const payload = questions.map((q, i) => ({
-            quiz_id: quizId,
-            text: q.text,
-            option_a: q.option_a,
-            option_b: q.option_b,
-            option_c: q.option_c,
-            option_d: q.option_d,
-            correct_answer: q.correct_answer,
-            time_seconds: q.time_seconds,
-            base_points: q.base_points,
-            is_special: q.is_special ? 1 : 0,
-            is_wildcard: q.is_wildcard ? 1 : 0,
-            order_index: i,
-          }));
-
-          const { error } = await supabase.from('questions').insert(payload);
-          if (!error) return { count: questions.length };
-        } catch (err) {
-          console.warn('Supabase importBatch fallback:', err);
-        }
-      }
 
       if (isElectron) return window.hootka.question.importBatch(quizId, questions);
       const qs = await api.question.getByQuiz(quizId);
@@ -550,10 +364,14 @@ export const api = {
     export: async (options: any): Promise<{ success?: boolean; filePath?: string; canceled?: boolean }> => {
       if (isElectron) return window.hootka.backup.export(options);
       const quizzes = await api.quiz.getAll();
+      const questions = Object.fromEntries(await Promise.all(
+        quizzes.map(async (quiz) => [quiz.id, await api.question.getByQuiz(quiz.id)])
+      ));
       const payload = {
-        version: '1.0.0',
+        version: '1.1.0',
         exportedAt: new Date().toISOString(),
         quizzes,
+        questions,
         games: options?.includeHistory ? await api.game.getAll() : [],
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -562,7 +380,7 @@ export const api = {
       a.href = url;
       a.download = `hootka_backup_${Date.now()}.hootka`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       return { success: true, filePath: 'download' };
     },
     import: async (): Promise<{ success?: boolean; quizCount?: number; error?: string; canceled?: boolean }> => {
@@ -581,6 +399,17 @@ export const api = {
               const current = await api.quiz.getAll();
               const merged = [...data.quizzes, ...current.filter((c) => !data.quizzes.some((d: any) => d.id === c.id))];
               localStorage.setItem(MOCK_QUIZZES_KEY, JSON.stringify(merged));
+              if (data.questions && typeof data.questions === 'object') {
+                for (const quiz of data.quizzes as Quiz[]) {
+                  const questions = data.questions[quiz.id];
+                  if (Array.isArray(questions)) {
+                    localStorage.setItem(`hootka_questions_${quiz.id}`, JSON.stringify(questions));
+                  }
+                }
+              }
+              if (Array.isArray(data.games)) {
+                localStorage.setItem(MOCK_GAMES_KEY, JSON.stringify(data.games));
+              }
               return resolve({ success: true, quizCount: data.quizzes.length });
             }
             resolve({ error: 'Arquivo inválido' });
@@ -634,3 +463,4 @@ export const backupApi = api.backup;
 export const settingsApi = api.settings;
 
 export default api;
+

@@ -12,13 +12,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useGameStore } from '@/stores/gameStore'
-import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
 import type { Game } from '@/types'
 
 // ─── Lazy screen imports ──────────────────────────────────────────────────
 
-const Auth             = lazy(() => import('@/screens/Auth'))
 const Home             = lazy(() => import('@/screens/Home'))
 const MyQuizzes        = lazy(() => import('@/screens/MyQuizzes'))
 const CreateQuiz       = lazy(() => import('@/screens/CreateQuiz'))
@@ -171,37 +169,11 @@ function RecoveryModal({ game, onResume, onDiscard }: RecoveryModalProps) {
 
 function AnimatedRoutes() {
   const location = useLocation()
-  const { user, guestMode, loading: authLoading } = useAuthStore()
-
-  if (authLoading) {
-    return <PageLoader />
-  }
-
-  // If user is not authenticated and has not chosen guest mode, force login
-  if (!user && !guestMode) {
-    return (
-      <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname}>
-          <Route
-            path="/login"
-            element={
-              <PageWrapper>
-                <Suspense fallback={<PageLoader />}>
-                  <Auth />
-                </Suspense>
-              </PageWrapper>
-            }
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </AnimatePresence>
-    )
-  }
 
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        {/* If logged in or guest, redirect /login to home */}
+        {/* Old login links return to the local home screen. */}
         <Route path="/login" element={<Navigate to="/" replace />} />
 
         {/* Home */}
@@ -386,23 +358,18 @@ function AppInner() {
   const loadSettings = useSettingsStore((s) => s.loadSettings)
   const loadGame     = useGameStore((s) => s.loadGame)
   const resetGame    = useGameStore((s) => s.resetGame)
-  const initAuth     = useAuthStore((s) => s.initAuth)
 
   const [activeGame, setActiveGame] = useState<Game | null>(null)
   const [showRecovery, setShowRecovery] = useState(false)
 
-  // On mount: init auth + load settings + check for crash-recoverable game
+  // On mount: load settings and check for a recoverable game
   useEffect(() => {
     let cancelled = false
 
     async function init() {
-      // 1. Initialize Supabase Auth session & listeners
-      await initAuth()
-
-      // 2. Load app settings
       await loadSettings()
 
-      // 3. Check for an unfinished game in the DB
+      // Check for an unfinished game in local storage
       try {
         const game = await api.game.getActive()
         if (!cancelled && game && game.state !== 'finished' && game.state !== 'lobby') {
@@ -416,7 +383,7 @@ function AppInner() {
 
     init()
     return () => { cancelled = true }
-  }, [loadSettings, initAuth])
+  }, [loadSettings])
 
   const handleResume = async () => {
     if (!activeGame) return
@@ -461,3 +428,4 @@ export default function App() {
     </HashRouter>
   )
 }
+
