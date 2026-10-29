@@ -71,6 +71,10 @@ export function registerGameHandlers() {
     if (state === 'question' && extra?.started_at) {
       db().prepare("UPDATE games SET started_at=? WHERE id=? AND started_at IS NULL").run(extra.started_at, id)
     }
+    if (Array.isArray(extra?.teams)) {
+      const updateTeam = db().prepare('UPDATE teams SET score=?, streak=? WHERE id=? AND game_id=?')
+      extra.teams.forEach((team: any) => updateTeam.run(team.score || 0, team.streak || 0, team.id, id))
+    }
     return { success: true }
   })
 
@@ -136,12 +140,14 @@ export function registerGameHandlers() {
 
   // Answer handlers
   ipcMain.handle('answer:saveAnswers', (_, answers: any[]) => {
+    const removePrevious = db().prepare('DELETE FROM answers WHERE game_id=? AND game_question_id=? AND team_id=?')
     const stmt = db().prepare(`
-      INSERT OR REPLACE INTO answers (id, game_id, game_question_id, team_id, correct, elapsed_time, base_score, speed_bonus, recovery_bonus, streak_bonus, special_bonus, total_score)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO answers (id, game_id, game_question_id, team_id, correct, elapsed_time, base_score, speed_bonus, recovery_bonus, streak_bonus, special_bonus, selected_answer, answer_order, order_bonus, penalty, total_score)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     const insertAll = db().transaction((ans: any[]) => {
       ans.forEach(a => {
+        removePrevious.run(a.game_id, a.game_question_id, a.team_id)
         stmt.run(
           a.id || uuidv4(),
           a.game_id, a.game_question_id, a.team_id,
@@ -152,6 +158,10 @@ export function registerGameHandlers() {
           a.recovery_bonus || 0,
           a.streak_bonus || 0,
           a.special_bonus || 0,
+          a.selected_answer || null,
+          a.answer_order || null,
+          a.order_bonus || 0,
+          a.penalty || 0,
           a.total_score || 0
         )
       })

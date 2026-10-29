@@ -5,6 +5,7 @@
 import type {
   Quiz, Question, Game, Team, GameQuestion, Answer,
 } from '../types';
+import { questionPoints } from '../engine/scoring';
 
 export const isElectron = typeof window !== 'undefined' && Boolean(window.hootka);
 
@@ -249,9 +250,9 @@ export const api = {
         option_d: q.option_d,
         correct_answer: q.correct_answer,
         time_seconds: q.time_seconds,
-        base_points: q.base_points,
-        is_special: q.is_special,
-        is_wildcard: q.is_wildcard,
+        base_points: questionPoints(q.base_points),
+        is_special: 0,
+        is_wildcard: 0,
         order_index: i,
       }));
       const games = JSON.parse(localStorage.getItem(MOCK_GAMES_KEY) || '[]');
@@ -474,4 +475,3 @@ export const backupApi = api.backup;
 export const settingsApi = api.settings;
 
 export default api;
-

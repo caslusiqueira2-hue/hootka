@@ -177,7 +177,9 @@ function createTables() {
       emoji TEXT NOT NULL DEFAULT '🎯',
       color TEXT NOT NULL DEFAULT '#FF3B00',
       identifier TEXT DEFAULT '',
-      order_index INTEGER DEFAULT 0
+      order_index INTEGER DEFAULT 0,
+      score INTEGER DEFAULT 0,
+      streak INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS game_questions (
@@ -209,6 +211,10 @@ function createTables() {
       recovery_bonus INTEGER DEFAULT 0,
       streak_bonus INTEGER DEFAULT 0,
       special_bonus INTEGER DEFAULT 0,
+      selected_answer TEXT,
+      answer_order INTEGER,
+      order_bonus INTEGER DEFAULT 0,
+      penalty INTEGER DEFAULT 0,
       total_score INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
@@ -227,6 +233,14 @@ function createTables() {
       value TEXT NOT NULL DEFAULT ''
     );
   `)
+  const addMissingColumns = (table: string, columns: Record<string, string>) => {
+    const existing = new Set(d.prepare(`PRAGMA table_info(${table})`).all().map((column: any) => column.name))
+    Object.entries(columns).forEach(([name, type]) => {
+      if (!existing.has(name)) d.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`)
+    })
+  }
+  addMissingColumns('teams', { score: 'INTEGER DEFAULT 0', streak: 'INTEGER DEFAULT 0' })
+  addMissingColumns('answers', { selected_answer: 'TEXT', answer_order: 'INTEGER', order_bonus: 'INTEGER DEFAULT 0', penalty: 'INTEGER DEFAULT 0' })
 }
 
 function seedDemoData() {

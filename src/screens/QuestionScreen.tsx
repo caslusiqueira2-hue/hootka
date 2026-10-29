@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
-import { api } from '@/lib/api';
+import { questionPoints } from '@/engine/scoring';
 import soundEngine from '@/utils/soundEngine';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 import NeoBrutalistBadge from '@/components/ui/NeoBrutalistBadge';
@@ -12,28 +12,37 @@ export const QuestionScreen: React.FC = () => {
   const navigate = useNavigate();
 
   const active = useGameStore((s) => s.active);
-  const { game, questions, currentQuestionIndex } = active;
+  const { teams, questions, currentQuestionIndex } = active;
 
   const currentQuestion = questions[currentQuestionIndex];
+  const orderKey = `hootka_first_${gameId}_${currentQuestion?.id}`;
+  const [firstThree, setFirstThree] = useState<string[]>([]);
   const totalQuestions = questions.length;
 
   const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.time_seconds || 30);
   const [isRunning, setIsRunning] = useState<boolean>(true);
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
-  const [elapsed, setElapsed] = useState<number>(0);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize timer for current question
   useEffect(() => {
     if (!currentQuestion) return;
+    try { setFirstThree(JSON.parse(localStorage.getItem(orderKey) || '[]')); } catch { setFirstThree([]); }
     const initialTime = currentQuestion.time_seconds || 30;
     setTimeLeft(initialTime);
     setIsRunning(true);
     setIsRevealed(false);
-    setElapsed(0);
     soundEngine.playCountdown();
   }, [currentQuestionIndex, currentQuestion]);
+
+  const markFirst = (teamId: string) => {
+    setFirstThree((previous) => {
+      const next = previous.includes(teamId) ? previous.filter((id) => id !== teamId) : previous.length < 3 ? [...previous, teamId] : previous;
+      localStorage.setItem(orderKey, JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Timer interval
   useEffect(() => {
@@ -61,7 +70,6 @@ export const QuestionScreen: React.FC = () => {
         return next;
       });
 
-      setElapsed((prev) => prev + 1);
     }, 1000);
 
     return () => {
@@ -87,10 +95,8 @@ export const QuestionScreen: React.FC = () => {
 
   const handleGoToRegistration = useCallback(() => {
     if (!gameId) return;
-    // Store elapsed time in localStorage or pass along
-    localStorage.setItem(`hootka_elapsed_${gameId}`, String(elapsed));
     navigate(`/game/${gameId}/answers`);
-  }, [gameId, elapsed, navigate]);
+  }, [gameId, navigate]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -157,13 +163,7 @@ export const QuestionScreen: React.FC = () => {
             <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: '1.75rem', letterSpacing: '0.04em' }}>
               QUESTÃO {String(currentQuestionIndex + 1).padStart(2, '0')} / {String(totalQuestions).padStart(2, '0')}
             </span>
-            {Boolean(currentQuestion.is_special) && (
-              <NeoBrutalistBadge variant="warning">⭐ ESPECIAL (+50% BÔNUS)</NeoBrutalistBadge>
-            )}
-            {Boolean(currentQuestion.is_wildcard) && (
-              <NeoBrutalistBadge variant="danger">⚡ QUESTÃO DE VIRADA</NeoBrutalistBadge>
-            )}
-            <NeoBrutalistBadge variant="secondary">{currentQuestion.base_points} PONTOS</NeoBrutalistBadge>
+            <NeoBrutalistBadge variant="secondary">{questionPoints(currentQuestion.base_points)} PONTOS</NeoBrutalistBadge>
           </div>
 
           {/* Countdown Clock Neo-Brutalist */}
@@ -191,27 +191,19 @@ export const QuestionScreen: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Wildcard Alert Banner */}
-        {Boolean(currentQuestion.is_wildcard) && (
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            style={{
-              background: '#FFD600',
-              border: '3px solid #0A0A0A',
-              boxShadow: '4px 4px 0 #0A0A0A',
-              padding: '0.6rem 1rem',
-              textAlign: 'center',
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 900,
-              fontSize: '1.25rem',
-              letterSpacing: '0.08em',
-              marginBottom: '1rem',
-            }}
-          >
-            ⚡ QUESTÃO DE VIRADA — PONTUAÇÃO DOBRADA PARA QUEM ACERTAR! ⚡
-          </motion.div>
-        )}
+      </div>
+
+      <div style={{ background: '#FFFFFF', border: '3px solid #0A0A0A', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+        <strong>🏁 PRIMEIROS A LEVANTAR A PLAQUINHA</strong>
+        <p style={{ margin: '0.25rem 0 0.6rem', fontSize: '0.9rem' }}>Toque nas equipes na ordem observada (até 3). Bônus de 30, 20 e 10 pontos somente se acertarem. Ao encerrar, peça que mantenham as plaquinhas levantadas até você registrar as letras.</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {teams.map((team) => {
+            const rank = firstThree.indexOf(team.id) + 1;
+            return <button key={team.id} type="button" onClick={() => markFirst(team.id)} style={{ border: '2px solid #0A0A0A', padding: '0.4rem 0.7rem', background: rank ? '#FFD600' : '#F5F0E8', fontWeight: 800 }}>
+              {rank ? `${rank}º · ` : ''}{team.emoji} {team.name}
+            </button>;
+          })}
+        </div>
       </div>
 
       {/* Center: Big Question Box */}
@@ -257,19 +249,15 @@ export const QuestionScreen: React.FC = () => {
         }}
       >
         {options.map((opt) => {
-          const isThisCorrect = isRevealed && currentQuestion.correct_answer === opt.letter;
-          const isWrong = isRevealed && currentQuestion.correct_answer !== opt.letter;
-
           return (
             <motion.div
               key={opt.letter}
-              animate={isThisCorrect ? { scale: [1, 1.03, 1] } : isWrong ? { opacity: 0.35 } : { opacity: 1 }}
-              transition={isThisCorrect ? { repeat: Infinity, duration: 1.2 } : {}}
+              animate={{ opacity: 1 }}
               style={{
-                background: isThisCorrect ? '#00C851' : opt.color,
-                color: isThisCorrect ? '#FFFFFF' : opt.textColor,
-                border: isThisCorrect ? '5px solid #0A0A0A' : '4px solid #0A0A0A',
-                boxShadow: isThisCorrect ? '8px 8px 0 #0A0A0A' : '6px 6px 0 #0A0A0A',
+                background: opt.color,
+                color: opt.textColor,
+                border: '4px solid #0A0A0A',
+                boxShadow: '6px 6px 0 #0A0A0A',
                 padding: '1.5rem 1.75rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -306,11 +294,6 @@ export const QuestionScreen: React.FC = () => {
               >
                 {opt.text}
               </span>
-              {isThisCorrect && (
-                <span style={{ marginLeft: 'auto', fontSize: '2rem', fontWeight: 900 }}>
-                  ✓
-                </span>
-              )}
             </motion.div>
           );
         })}
@@ -341,7 +324,7 @@ export const QuestionScreen: React.FC = () => {
           )}
           {!isRevealed && (
             <NeoBrutalistButton variant="accent" size="sm" onClick={handleReveal}>
-              👁️ REVELAR RESPOSTA (Enter)
+              🔒 FECHAR RESPOSTAS (Enter)
             </NeoBrutalistButton>
           )}
         </div>
@@ -354,7 +337,7 @@ export const QuestionScreen: React.FC = () => {
               onClick={handleGoToRegistration}
               style={{ fontWeight: 900 }}
             >
-              QUEM ACERTOU? REGISTRAR RESPOSTAS → (Enter)
+              REGISTRAR AS PLAQUINHAS → (Enter)
             </NeoBrutalistButton>
           )}
         </div>

@@ -12,7 +12,7 @@ import type {
   Team,
 } from '@/types'
 import { api, answerApi } from '@/lib/api'
-import { calculateScore } from '@/engine/scoring'
+import { calculateScore, streakBefore } from '@/engine/scoring'
 
 // ─── Transient Setup State (pre-game) ─────────────────────────────────────
 
@@ -246,35 +246,28 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   registerAnswers: async () => {
     const { active } = get()
-    const { game, teams, questions, currentQuestionIndex, correctTeamIds, elapsedSeconds } = active
+    const { game, teams, questions, currentQuestionIndex, correctTeamIds } = active
     if (!game) return
     const currentQuestion = questions[currentQuestionIndex]
     if (!currentQuestion) return
 
-    const settings = game.settings
-    const totalTime = currentQuestion.time_seconds
-    const leaderScore = Math.max(...teams.map((t) => t.score ?? 0), 0)
+    const previousAnswers = await answerApi.getByGame(game.id)
 
     const answers = teams.map((team) => {
       const correct = correctTeamIds.includes(team.id)
+      const previous = streakBefore(previousAnswers, team.id, questions, currentQuestionIndex)
       const result = calculateScore({
         correct,
         basePoints: currentQuestion.base_points,
-        elapsedTime: elapsedSeconds,
-        totalTime,
-        gapToLeader: Math.max(0, leaderScore - (team.score ?? 0)),
-        streak: team.streak ?? 0,
-        isSpecial: Boolean(currentQuestion.is_special),
-        isWildcard: Boolean(currentQuestion.is_wildcard),
-        streakEnabled: settings.streakEnabled,
-        recoveryBonusEnabled: settings.recoveryBonusEnabled,
+        ...previous,
+        currentScore: team.score ?? 0,
       })
       return {
         game_id: game.id,
         game_question_id: currentQuestion.id,
         team_id: team.id,
         correct,
-        elapsed_time: elapsedSeconds,
+        elapsed_time: 0,
         base_score: result.baseScore,
         speed_bonus: result.speedBonus,
         recovery_bonus: result.recoveryBonus,
@@ -331,4 +324,3 @@ useGameStore.subscribe((state) => {
     console.warn('Não foi possível salvar a partida localmente:', error)
   }
 })
-

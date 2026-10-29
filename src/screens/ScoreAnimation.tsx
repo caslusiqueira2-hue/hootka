@@ -25,7 +25,7 @@ function CountUp({
     const ctrl = animate(motionVal, to, {
       duration,
       ease: 'easeOut',
-      onUpdate: (v) => setDisplay(Math.round(v)),
+      onUpdate: (v: number) => setDisplay(Math.round(v)),
     });
     return () => ctrl.stop();
   }, [to, duration, motionVal]);
@@ -50,9 +50,11 @@ export const ScoreAnimation: React.FC = () => {
       correct: false,
       baseScore: 0,
       speedBonus: 0,
+      orderBonus: 0,
       recoveryBonus: 0,
       streakBonus: 0,
       specialBonus: 0,
+      penalty: 0,
       totalScore: 0,
     };
     return {
@@ -79,11 +81,8 @@ export const ScoreAnimation: React.FC = () => {
     soundEngine.playCorrect();
 
     const t1 = setTimeout(() => setShowUpdating(true), totalRevealMs);
-    const t2 = setTimeout(handleProceed, totalRevealMs + 1800);
-
     return () => {
       clearTimeout(t1);
-      clearTimeout(t2);
     };
   }, [gameId, totalRevealMs]);
 
@@ -196,7 +195,7 @@ export const ScoreAnimation: React.FC = () => {
                   >
                     <span style={{ fontSize: '2rem', color: '#FF1744' }}>✖</span>
                     <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: '1.5rem', color: '#FF1744' }}>
-                      ERROU (0 PTS)
+                      {sr.selectedAnswer === '-' ? 'SEM RESPOSTA (0 PTS)' : sr.penalty > 0 ? `3 ERROS: −${sr.penalty} PTS` : 'ERROU (0 PTS)'}
                     </span>
                   </motion.div>
                 ) : (
@@ -206,10 +205,10 @@ export const ScoreAnimation: React.FC = () => {
                       <span>+{sr.baseScore}</span>
                     </div>
 
-                    {sr.speedBonus > 0 && (
+                    {sr.orderBonus > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#1A1AFF', fontSize: '1rem' }}>
-                        <span>⚡ Velocidade:</span>
-                        <span>+{sr.speedBonus}</span>
+                        <span>🏁 Entre os 3 primeiros:</span>
+                        <span>+{sr.orderBonus}</span>
                       </div>
                     )}
 
@@ -224,13 +223,6 @@ export const ScoreAnimation: React.FC = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#9B59B6', fontSize: '1rem' }}>
                         <span>🔥 Streak:</span>
                         <span>+{sr.streakBonus}</span>
-                      </div>
-                    )}
-
-                    {sr.specialBonus > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#E74C3C', fontSize: '1rem' }}>
-                        <span>⭐ Bônus Especial:</span>
-                        <span>+{sr.specialBonus}</span>
                       </div>
                     )}
 
@@ -300,6 +292,9 @@ export const ScoreAnimation: React.FC = () => {
           )}
         </AnimatePresence>
 
+        <button onClick={() => navigate(`/game/${gameId}/answers`)} style={{ background: '#FFFFFF', color: '#0A0A0A', border: '2px solid #FFFFFF', padding: '0.6rem 1rem', fontWeight: 900, cursor: 'pointer' }}>
+          CORRIGIR MARCAÇÕES
+        </button>
         <button
           onClick={handleProceed}
           style={{
