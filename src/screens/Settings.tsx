@@ -116,69 +116,13 @@ export const Settings: React.FC = () => {
           </div>
         </NeoBrutalistCard>
 
-        {/* Dynamic Rules */}
+        {/* Classroom scoring rules */}
         <NeoBrutalistCard style={{ padding: '1.75rem' }}>
           <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.35rem', marginTop: 0, marginBottom: '1.25rem' }}>
-            ⚡ REGRAS DE PONTUAÇÃO PADRÃO
+            🏁 PONTUAÇÃO COM PLAQUINHAS
           </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Pontuação Dinâmica por Velocidade</div>
-                <div style={{ color: '#555', fontSize: '0.9rem' }}>Bônus proporcional ao tempo em que a questão foi respondida</div>
-              </div>
-              <NeoBrutalistButton
-                variant={dynamicScoring ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => handleToggle('dynamicScoring', dynamicScoring)}
-              >
-                {dynamicScoring ? 'ON' : 'OFF'}
-              </NeoBrutalistButton>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #DDD', paddingTop: '1rem' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Streak (Sequência de Acertos)</div>
-                <div style={{ color: '#555', fontSize: '0.9rem' }}>Bônus extra por acertos consecutivos (máx +30)</div>
-              </div>
-              <NeoBrutalistButton
-                variant={streakEnabled ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => handleToggle('streakEnabled', streakEnabled)}
-              >
-                {streakEnabled ? 'ON' : 'OFF'}
-              </NeoBrutalistButton>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #DDD', paddingTop: '1rem' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Bônus de Recuperação</div>
-                <div style={{ color: '#555', fontSize: '0.9rem' }}>Pequeno bônus aos grupos que estão atrás, sem punir a liderança</div>
-              </div>
-              <NeoBrutalistButton
-                variant={recoveryBonusEnabled ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => handleToggle('recoveryBonusEnabled', recoveryBonusEnabled)}
-              >
-                {recoveryBonusEnabled ? 'ON' : 'OFF'}
-              </NeoBrutalistButton>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #DDD', paddingTop: '1rem' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Mostrar Ranking após cada Questão</div>
-                <div style={{ color: '#555', fontSize: '0.9rem' }}>Exibir animação e ranking antes da próxima questão</div>
-              </div>
-              <NeoBrutalistButton
-                variant={showRankingAfterQuestion ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => handleToggle('showRankingAfterQuestion', showRankingAfterQuestion)}
-              >
-                {showRankingAfterQuestion ? 'ON' : 'OFF'}
-              </NeoBrutalistButton>
-            </div>
-          </div>
+          <p>Acerto: 100 pontos (150 em questão difícil). Terceiro acerto seguido: +50. Terceiro erro seguido: até −30, sem placar negativo. Acerto após dois ou mais erros: +20. Entre os três primeiros a levantar a plaquinha: +30, +20 ou +10, somente em caso de acerto.</p>
+          <p>As sequências recomeçam a cada bloco de três. O cronômetro define o prazo de resposta; não gera pontos. A ordem é marcada pelo professor e pode ficar em branco.</p>
         </NeoBrutalistCard>
 
         {/* Backup & Portability */}

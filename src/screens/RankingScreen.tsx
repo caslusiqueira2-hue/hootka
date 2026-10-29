@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { api } from '@/lib/api';
+import { competitionRank } from '@/engine/scoring';
 import soundEngine from '@/utils/soundEngine';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 
@@ -31,8 +32,8 @@ export const RankingScreen: React.FC = () => {
   const sortedTeams = [...teams].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
   // Build ranked team objects with delta
-  const currentRanked = sortedTeams.map((team, idx) => {
-    const currentRank = idx + 1;
+  const currentRanked = sortedTeams.map((team) => {
+    const currentRank = competitionRank(sortedTeams, team);
     const prevRank = prevRankings[team.id];
     const rankChange = prevRank !== undefined ? prevRank - currentRank : 0;
     return {
@@ -343,6 +344,9 @@ export const RankingScreen: React.FC = () => {
           {btnEnabled ? 'Pressione Enter ou clique no botão para avançar' : 'Aguarde a animação do ranking...'}
         </span>
 
+        <NeoBrutalistButton variant="ghost" size="lg" onClick={() => navigate(`/game/${gameId}/answers`)}>
+          CORRIGIR RESULTADO
+        </NeoBrutalistButton>
         <NeoBrutalistButton
           variant="primary"
           size="lg"
@@ -358,4 +362,3 @@ export const RankingScreen: React.FC = () => {
 };
 
 export default RankingScreen;
-

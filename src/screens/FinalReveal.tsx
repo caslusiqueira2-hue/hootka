@@ -8,10 +8,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
+import { competitionRank } from '@/engine/scoring'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface FinalEntry {
+  teamId: string
   rank: number
   teamName: string
   teamEmoji: string
@@ -34,7 +36,7 @@ function RevealCard({ entry, visible }: { entry: FinalEntry; visible: boolean })
     <AnimatePresence>
       {visible && (
         <motion.div
-          key={entry.rank}
+          key={entry.teamId}
           initial={{ opacity: 0, scale: 0.6, y: 60 }}
           animate={
             isFirst
@@ -163,8 +165,9 @@ export default function FinalReveal() {
 
   const activeTeams = useGameStore((s) => s.active.teams);
   const sorted = [...activeTeams].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  const ranking: FinalEntry[] = sorted.map((t, idx) => ({
-    rank: idx + 1,
+  const ranking: FinalEntry[] = sorted.map((t) => ({
+    teamId: t.id,
+    rank: competitionRank(sorted, t),
     teamName: t.name,
     teamEmoji: t.emoji,
     teamColor: t.color,
@@ -178,6 +181,7 @@ export default function FinalReveal() {
   const [revealedCount, setRevealedCount] = useState(ranking.length)
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Phase transitions
   useEffect(() => {
     if (phase !== 'calculating') return
     const t = setTimeout(() => {
@@ -292,9 +296,9 @@ export default function FinalReveal() {
             {/* Renders from last to first visually; revealOrder is reversed so index 0 = last place */}
             {revealOrder.map((entry) => (
               <RevealCard
-                key={entry.rank}
+                key={entry.teamId}
                 entry={entry}
-                visible={visibleTeams.some((t) => t.rank === entry.rank)}
+                visible={visibleTeams.some((t) => t.teamId === entry.teamId)}
               />
             ))}
           </motion.div>
@@ -331,4 +335,3 @@ export default function FinalReveal() {
     </div>
   )
 }
-

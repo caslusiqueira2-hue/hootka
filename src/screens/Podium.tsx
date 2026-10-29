@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { api } from '@/lib/api';
+import { competitionRank } from '@/engine/scoring';
 import soundEngine from '@/utils/soundEngine';
 import Confetti from '@/components/game/Confetti';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
@@ -40,6 +41,20 @@ export const Podium: React.FC = () => {
   const handleFinishAndExit = () => {
     navigate('/');
   };
+
+  if (new Set(sortedTeams.map((team) => team.score ?? 0)).size < sortedTeams.length) {
+    const leaders = sortedTeams.filter((team) => competitionRank(sortedTeams, team) === 1);
+    return <div style={{ minHeight: '100vh', background: '#0A0A0A', color: '#FFFFFF', padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ color: '#FFD600', fontSize: '2.5rem' }}>{leaders.length > 1 ? 'EMPATE EM 1º LUGAR' : 'RESULTADO FINAL'}</h1>
+      <p>{leaders.length > 1 ? 'As equipes com a mesma pontuação dividem a posição. Se precisar de um vencedor, faça uma pergunta extra combinada com a turma.' : 'Equipes com a mesma pontuação dividem a posição.'}</p>
+      <div style={{ maxWidth: '680px', margin: '2rem auto' }}>
+        {sortedTeams.map((team) => <div key={team.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '1rem', marginBottom: '0.6rem', border: '2px solid #FFFFFF', background: competitionRank(sortedTeams, team) === 1 ? '#FFD600' : '#222', color: competitionRank(sortedTeams, team) === 1 ? '#0A0A0A' : '#FFFFFF', fontWeight: 900 }}>
+          <span>{competitionRank(sortedTeams, team)}º · {team.emoji} {team.name}</span><span>{team.score ?? 0} pts</span>
+        </div>)}
+      </div>
+      <NeoBrutalistButton variant="primary" size="lg" onClick={handleFinishAndExit}>SALVAR E VOLTAR AO INÍCIO</NeoBrutalistButton>
+    </div>;
+  }
 
   return (
     <div

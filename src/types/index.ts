@@ -115,6 +115,10 @@ export interface Answer {
   streak_bonus: number;
   special_bonus: number;
   total_score: number;
+  selected_answer?: 'A' | 'B' | 'C' | 'D' | '-';
+  answer_order?: number | null;
+  order_bonus?: number;
+  penalty?: number;
   created_at?: string;
 }
 
@@ -125,6 +129,8 @@ export interface ScoreResult {
   streakBonus: number;
   specialBonus: number;
   totalScore: number;
+  orderBonus: number;
+  penalty: number;
 }
 
 export interface TeamScore {

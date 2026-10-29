@@ -179,9 +179,9 @@ export const ImportQuestions: React.FC = () => {
         option_d: r.alternativa_d,
         correct_answer: r.resposta as any,
         time_seconds: r.tempo,
-        base_points: r.pontos,
-        is_special: r.pontos >= 200 ? 1 : 0,
-        is_wildcard: r.pontos >= 300 ? 1 : 0,
+        base_points: r.pontos >= 150 ? 150 : 100,
+        is_special: 0,
+        is_wildcard: 0,
         order_index: i,
       }));
 
@@ -446,7 +446,7 @@ export const ImportQuestions: React.FC = () => {
                     <td style={{ padding: '0.6rem', border: '1px solid #DDD' }}>{r.alternativa_d}</td>
                     <td style={{ padding: '0.6rem', border: '1px solid #DDD', fontWeight: 900, textAlign: 'center', background: '#F5F0E8' }}>{r.resposta}</td>
                     <td style={{ padding: '0.6rem', border: '1px solid #DDD', textAlign: 'center' }}>{r.tempo}s</td>
-                    <td style={{ padding: '0.6rem', border: '1px solid #DDD', textAlign: 'center' }}>{r.pontos}</td>
+                    <td style={{ padding: '0.6rem', border: '1px solid #DDD', textAlign: 'center' }}>{r.pontos >= 150 ? 150 : 100}</td>
                   </tr>
                 ))}
               </tbody>

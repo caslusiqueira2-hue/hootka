@@ -35,9 +35,9 @@ export const EditQuiz: React.FC = () => {
       option_d: q.option_d,
       correct_answer: q.correct_answer,
       time_seconds: q.time_seconds,
-      base_points: q.base_points,
-      is_special: q.is_special,
-      is_wildcard: q.is_wildcard,
+      base_points: q.base_points >= 150 ? 150 : 100,
+      is_special: 0,
+      is_wildcard: 0,
       order_index: questions.length + i,
     }));
 
@@ -54,8 +54,6 @@ export const EditQuiz: React.FC = () => {
   const [correctAnswer, setCorrectAnswer] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const [timeSeconds, setTimeSeconds] = useState(30);
   const [basePoints, setBasePoints] = useState(100);
-  const [isSpecial, setIsSpecial] = useState(false);
-  const [isWildcard, setIsWildcard] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +90,6 @@ export const EditQuiz: React.FC = () => {
     setCorrectAnswer('A');
     setTimeSeconds(30);
     setBasePoints(100);
-    setIsSpecial(false);
-    setIsWildcard(false);
     setEditingIndex(null);
   };
 
@@ -111,9 +107,7 @@ export const EditQuiz: React.FC = () => {
     setOptD(q.option_d);
     setCorrectAnswer(q.correct_answer);
     setTimeSeconds(q.time_seconds);
-    setBasePoints(q.base_points);
-    setIsSpecial(Boolean(q.is_special));
-    setIsWildcard(Boolean(q.is_wildcard));
+    setBasePoints(q.base_points >= 150 ? 150 : 100);
     setEditingIndex(idx);
     setIsModalOpen(true);
   };
@@ -134,9 +128,9 @@ export const EditQuiz: React.FC = () => {
         option_d: optD.trim(),
         correct_answer: correctAnswer,
         time_seconds: timeSeconds,
-        base_points: basePoints,
-        is_special: isSpecial ? 1 : 0,
-        is_wildcard: isWildcard ? 1 : 0,
+        base_points: basePoints >= 150 ? 150 : 100,
+        is_special: 0,
+        is_wildcard: 0,
       };
 
       await api.question.update(target.id, updatedData);
@@ -153,9 +147,9 @@ export const EditQuiz: React.FC = () => {
         option_d: optD.trim(),
         correct_answer: correctAnswer,
         time_seconds: timeSeconds,
-        base_points: basePoints,
-        is_special: isSpecial ? 1 : 0,
-        is_wildcard: isWildcard ? 1 : 0,
+        base_points: basePoints >= 150 ? 150 : 100,
+        is_special: 0,
+        is_wildcard: 0,
       };
       const res = await api.question.create(newQ);
       setQuestions([...questions, { ...newQ, id: res.id } as Question]);
@@ -332,9 +326,7 @@ export const EditQuiz: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <NeoBrutalistBadge variant="secondary">QUESTÃO #{idx + 1}</NeoBrutalistBadge>
                 <NeoBrutalistBadge variant="primary">{q.time_seconds}s</NeoBrutalistBadge>
-                <NeoBrutalistBadge variant="accent">{q.base_points} pts</NeoBrutalistBadge>
-                {Boolean(q.is_special) && <NeoBrutalistBadge variant="warning">⭐ ESPECIAL</NeoBrutalistBadge>}
-                {Boolean(q.is_wildcard) && <NeoBrutalistBadge variant="danger">⚡ VIRADA</NeoBrutalistBadge>}
+                <NeoBrutalistBadge variant="accent">{q.base_points >= 150 ? 150 : 100} pts</NeoBrutalistBadge>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <NeoBrutalistButton variant="ghost" size="sm" onClick={() => openEditModal(idx)}>
@@ -451,22 +443,11 @@ export const EditQuiz: React.FC = () => {
               <select className="neo-input" value={basePoints} onChange={(e) => setBasePoints(Number(e.target.value))} style={{ width: '100%', padding: '0.6rem', fontWeight: 800 }}>
                 <option value={100}>100 pontos</option>
                 <option value={150}>150 pontos</option>
-                <option value={200}>200 pontos</option>
-                <option value={300}>300 pontos</option>
               </select>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700 }}>
-              <input type="checkbox" checked={isSpecial} onChange={(e) => setIsSpecial(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-              ⭐ Questão Especial (+50% bônus)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700 }}>
-              <input type="checkbox" checked={isWildcard} onChange={(e) => setIsWildcard(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-              ⚡ Questão de Virada (pontuação dobrada)
-            </label>
-          </div>
+          <p style={{ fontWeight: 700 }}>100 pontos por acerto; 150 para uma questão difícil definida antes da partida. Não há multiplicadores.</p>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
             <NeoBrutalistButton variant="ghost" size="md" onClick={() => setIsModalOpen(false)}>CANCELAR</NeoBrutalistButton>

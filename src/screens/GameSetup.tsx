@@ -19,7 +19,7 @@ const MODES: ModeInfo[] = [
   {
     id: 'classic',
     label: 'CLÁSSICO',
-    description: 'Questões sequenciais, pontuação por acerto e velocidade.',
+    description: 'Questões sequenciais, acertos, sequência e recuperação.',
     icon: '⚡',
     color: '#FFD600',
     available: true,
@@ -27,7 +27,7 @@ const MODES: ModeInfo[] = [
   {
     id: 'team',
     label: 'CORRIDA',
-    description: 'Equipes disputam quem marca mais pontos no menor tempo.',
+    description: 'Equipes competem com plaquinhas; os 3 primeiros podem ganhar bônus.',
     icon: '🏎️',
     color: '#1A1AFF',
     available: true,
@@ -222,26 +222,7 @@ export default function GameSetup() {
             className="border-3 border-[#0A0A0A] bg-white shadow-[6px_6px_0_#0A0A0A] p-5"
             style={{ border: '3px solid #0A0A0A', boxShadow: '6px 6px 0 #0A0A0A' }}
           >
-            <Toggle
-              label="Pontuação dinâmica"
-              value={settings.dynamicScoring}
-              onChange={(v) => updateSettings({ dynamicScoring: v })}
-            />
-            <Toggle
-              label="Questões especiais"
-              value={settings.specialQuestionsEnabled}
-              onChange={(v) => updateSettings({ specialQuestionsEnabled: v })}
-            />
-            <Toggle
-              label="Streak (sequência de acertos)"
-              value={settings.streakEnabled}
-              onChange={(v) => updateSettings({ streakEnabled: v })}
-            />
-            <Toggle
-              label="Bônus de recuperação"
-              value={settings.recoveryBonusEnabled}
-              onChange={(v) => updateSettings({ recoveryBonusEnabled: v })}
-            />
+            <p className="font-bold text-sm">ACERTO +100 (OU +150 NA QUESTÃO DIFÍCIL) · 3 ACERTOS +50 · 3 ERROS −30 · ACERTO APÓS 2 ERROS +20 · PRIMEIROS 3, SE ACERTAREM: +30/+20/+10. O TEMPO É APENAS O PRAZO PARA LEVANTAR A PLAQUINHA.</p>
             <Toggle
               label="Animações fluidas"
               value={settings.animationsEnabled}
