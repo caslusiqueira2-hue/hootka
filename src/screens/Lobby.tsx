@@ -22,6 +22,7 @@ export const Lobby: React.FC = () => {
   const navigate = useNavigate();
   const pendingSetup = useGameStore((s) => s.pendingSetup);
   const setActiveGame = useGameStore((s) => s.setActiveGame);
+  const saveTeams = useGameStore((s) => s.setTeams);
 
   const [teams, setTeams] = useState<TeamDraft[]>(
     pendingSetup.teams.length > 0 ? pendingSetup.teams : INITIAL_TEAMS
@@ -74,15 +75,18 @@ export const Lobby: React.FC = () => {
         identifier: teamIdentifier.trim(),
       };
       setTeams(updated);
+      saveTeams(updated);
     } else {
       const newTeam: TeamDraft = {
-        id: 'team-' + Date.now(),
+        id: 'team-' + crypto.randomUUID(),
         name: teamName.trim().toUpperCase(),
         emoji: teamEmoji,
         color: teamColor,
         identifier: teamIdentifier.trim() || `Equipe ${teams.length + 1}`,
       };
-      setTeams([...teams, newTeam]);
+      const updated = [...teams, newTeam];
+      setTeams(updated);
+      saveTeams(updated);
     }
 
     setModalOpen(false);
@@ -93,7 +97,9 @@ export const Lobby: React.FC = () => {
       alert('O jogo precisa de pelo menos 2 equipes!');
       return;
     }
-    setTeams(teams.filter((_, i) => i !== idx));
+    const updated = teams.filter((_, i) => i !== idx);
+    setTeams(updated);
+    saveTeams(updated);
   };
 
   const handleStartGame = async () => {
@@ -111,6 +117,7 @@ export const Lobby: React.FC = () => {
     setStarting(true);
     setStartError(null);
     try {
+      saveTeams(teams);
       const quizQuestions = await api.question.getByQuiz(pendingSetup.quiz.id);
       if (quizQuestions.length === 0) {
         setStartError('Este quiz não tem perguntas. Adicione ao menos uma pergunta antes de jogar.');
@@ -160,7 +167,7 @@ export const Lobby: React.FC = () => {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
-      {startError && <p role="alert" style={{ color: '#b00020', fontWeight: 800 }}>{startError}</p>}
+      {startError && <p role="alert" style={{ color: '#b00020', background: '#fff0f0', border: '2px solid #b00020', padding: '0.75rem', fontWeight: 800 }}>{startError}</p>}
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
@@ -339,3 +346,4 @@ export const Lobby: React.FC = () => {
 };
 
 export default Lobby;
+

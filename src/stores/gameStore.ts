@@ -108,11 +108,23 @@ const defaultActive: ActiveGameState = {
   questionStartedAt: null,
 }
 
+const savedGameState = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('hootka_game_store') || '{}') as Partial<GameStore>
+  } catch {
+    return {} as Partial<GameStore>
+  }
+})()
+
 // ─── Store ────────────────────────────────────────────────────────────────
 
 export const useGameStore = create<GameStore>()((set, get) => ({
-  pendingSetup: { ...defaultPendingSetup, settings: { ...defaultSettings } },
-  active: { ...defaultActive },
+  pendingSetup: {
+    ...defaultPendingSetup,
+    ...savedGameState.pendingSetup,
+    settings: { ...defaultSettings, ...savedGameState.pendingSetup?.settings },
+  },
+  active: { ...defaultActive, ...savedGameState.active },
 
   // ── Setup ──────────────────────────────────────────────────────────────
 
@@ -308,3 +320,15 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   resetActive: () => set(() => ({ active: { ...defaultActive } })),
   resetGame: () => set(() => ({ active: { ...defaultActive } })),
 }))
+
+useGameStore.subscribe((state) => {
+  try {
+    localStorage.setItem('hootka_game_store', JSON.stringify({
+      pendingSetup: state.pendingSetup,
+      active: state.active,
+    }))
+  } catch (error) {
+    console.warn('Não foi possível salvar a partida localmente:', error)
+  }
+})
+

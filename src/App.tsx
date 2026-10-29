@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useState, Suspense, lazy } from 'react'
-import { HashRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, useLocation, useNavigate, useParams, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -94,6 +94,35 @@ function PageLoader() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
+}
+
+function GamePage({ children }: { children: React.ReactNode }) {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const game = useGameStore((s) => s.active.game)
+  const loadGame = useGameStore((s) => s.loadGame)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    if (game?.id === id) {
+      setChecked(true)
+      return
+    }
+    let cancelled = false
+    setChecked(false)
+    void loadGame(id).finally(() => { if (!cancelled) setChecked(true) })
+    return () => { cancelled = true }
+  }, [id, game?.id, loadGame])
+
+  if (!checked || !id) return <PageLoader />
+  if (game?.id !== id) {
+    return <div style={{ padding: '3rem', textAlign: 'center' }}>
+      <h2>Não foi possível carregar esta partida.</h2>
+      <button onClick={() => navigate('/game/new')}>ESCOLHER OUTRO QUIZ</button>
+    </div>
+  }
+  return <PageWrapper><Suspense fallback={<PageLoader />}>{children}</Suspense></PageWrapper>
 }
 
 // ─── Crash-recovery modal ─────────────────────────────────────────────────
@@ -264,61 +293,37 @@ function AnimatedRoutes() {
         <Route
           path="/game/:id/question"
           element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <QuestionScreen />
-              </Suspense>
-            </PageWrapper>
+            <GamePage><QuestionScreen /></GamePage>
           }
         />
         <Route
           path="/game/:id/answers"
           element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <AnswerRegistration />
-              </Suspense>
-            </PageWrapper>
+            <GamePage><AnswerRegistration /></GamePage>
           }
         />
         <Route
           path="/game/:id/score"
           element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <ScoreAnimation />
-              </Suspense>
-            </PageWrapper>
+            <GamePage><ScoreAnimation /></GamePage>
           }
         />
         <Route
           path="/game/:id/ranking"
           element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <RankingScreen />
-              </Suspense>
-            </PageWrapper>
+            <GamePage><RankingScreen /></GamePage>
           }
         />
         <Route
           path="/game/:id/final"
           element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <FinalReveal />
-              </Suspense>
-            </PageWrapper>
+            <GamePage><FinalReveal /></GamePage>
           }
         />
         <Route
           path="/game/:id/podium"
           element={
-            <PageWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <Podium />
-              </Suspense>
-            </PageWrapper>
+            <GamePage><Podium /></GamePage>
           }
         />
 
@@ -355,6 +360,7 @@ function AnimatedRoutes() {
 
 function AppInner() {
   const navigate = useNavigate()
+  const location = useLocation()
   const loadSettings = useSettingsStore((s) => s.loadSettings)
   const loadGame     = useGameStore((s) => s.loadGame)
   const resetGame    = useGameStore((s) => s.resetGame)
@@ -372,7 +378,7 @@ function AppInner() {
       // Check for an unfinished game in local storage
       try {
         const game = await api.game.getActive()
-        if (!cancelled && game && game.state !== 'finished' && game.state !== 'lobby') {
+        if (!cancelled && game && game.state !== 'finished' && game.state !== 'lobby' && !location.pathname.startsWith('/game/')) {
           setActiveGame(game)
           setShowRecovery(true)
         }
@@ -383,7 +389,7 @@ function AppInner() {
 
     init()
     return () => { cancelled = true }
-  }, [loadSettings])
+  }, [loadSettings, location.pathname])
 
   const handleResume = async () => {
     if (!activeGame) return

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
+import { api } from '@/lib/api';
 import soundEngine from '@/utils/soundEngine';
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton';
 
@@ -78,16 +79,18 @@ export const RankingScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (!btnEnabled) return;
 
     if (isLastQuestion) {
+      if (gameId) await api.game.updateState(gameId, 'final_reveal', { teams, current_question_index: currentQuestionIndex });
       navigate(`/game/${gameId}/final`);
     } else {
       advanceQuestion();
+      if (gameId) await api.game.updateState(gameId, 'question', { teams, current_question_index: currentQuestionIndex + 1 });
       navigate(`/game/${gameId}/question`);
     }
-  }, [btnEnabled, isLastQuestion, gameId, advanceQuestion, navigate]);
+  }, [btnEnabled, isLastQuestion, gameId, teams, currentQuestionIndex, advanceQuestion, navigate]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -355,3 +358,4 @@ export const RankingScreen: React.FC = () => {
 };
 
 export default RankingScreen;
+
