@@ -1,33 +1,18 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { HiddenWordBoard, HiddenWordRanking } from '@/components/game/HiddenWordBoard'
+import { useHiddenWordProjection } from '@/hooks/useHiddenWordProjection'
+import { projectHiddenWordRound, type HiddenWordRankedGroup } from '@/lib/hiddenWordProjection'
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton'
 import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard'
 import {
-  hiddenWordRanking, splitHiddenQuestion, type HiddenWordMatch, type HiddenWordRound,
+  hiddenWordRanking, splitHiddenQuestion, type HiddenWordMatch,
 } from '@/engine/hiddenWord'
 import { useHiddenWordStore } from '@/stores/hiddenWordStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import '@/styles/hiddenWord.css'
 
 type DialogKind = 'award' | 'correct' | 'finish'
-type RankedGroup = ReturnType<typeof hiddenWordRanking>[number]
-
-function Ranking({ groups, final = false }: { groups: RankedGroup[]; final?: boolean }) {
-  return (
-    <section className={'neo-card hw-ranking' + (final ? ' hw-ranking-final' : '')} aria-labelledby="hw-ranking-title">
-      <h2 id="hw-ranking-title">{final ? 'Placar final' : 'Placar'}</h2>
-      <ol className="hw-ranking-list" aria-live="polite">
-        {groups.map((group) => (
-          <li key={group.id}>
-            <span className="hw-place">{group.place}º</span>
-            <strong>{group.name}</strong>
-            <span className="hw-points">{group.score} {group.score === 1 ? 'ponto' : 'pontos'}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
-}
 
 function GroupSetup({ groups }: { groups: HiddenWordMatch['groups'] }) {
   const dispatch = useHiddenWordStore((state) => state.dispatch)
@@ -100,50 +85,6 @@ function GroupSetup({ groups }: { groups: HiddenWordMatch['groups'] }) {
   )
 }
 
-function RoundBoard({ round }: { round: HiddenWordRound }) {
-  const dispatch = useHiddenWordStore((state) => state.dispatch)
-  const animations = useSettingsStore((state) => state.animationsEnabled)
-  const { parts } = useMemo(() => splitHiddenQuestion(round.question), [round.question])
-  const revealedPositions = new Set(round.revealedPositions)
-
-  return (
-    <section className="neo-card hw-board" aria-labelledby="hw-question">
-      <header>
-        <h2 id="hw-question">Pergunta oculta</h2>
-        {!round.answerVisible && <p>Clique na posição pedida pelo grupo.</p>}
-      </header>
-      <div className="hw-question-slots" role="group" aria-label="Posições da pergunta">
-        {parts.map(({ text, masked, position }, index) => {
-          if (position === null) return text
-          const revealed = revealedPositions.has(position)
-          return (
-            <button key={index} type="button" className="hw-slot"
-              disabled={revealed || round.answerVisible}
-              aria-label={revealed ? `Posição ${position}: ${text}` : `Revelar posição ${position}`}
-              onClick={() => dispatch({ type: 'revealWord', position })}>
-              <span className="hw-position" aria-hidden="true">{position}</span>
-              <span className={revealed ? (animations ? 'hw-revealed hw-reveal' : 'hw-revealed') : undefined}>
-                {revealed ? text : masked}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      <p className="sr-only" role="status">
-        {parts.map(({ text, position, masked }) =>
-          position === null || revealedPositions.has(position) ? text : masked
-        ).join('')}
-      </p>
-      {round.answerVisible && (
-        <div className="hw-solution" role="status">
-          <span>Resposta correta</span>
-          <strong>{round.answer}</strong>
-        </div>
-      )}
-    </section>
-  )
-}
-
 function TeacherDialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -170,7 +111,7 @@ function TeacherDialog({ title, onClose, children }: { title: string; onClose: (
 function ScoreDialog({ kind, match, ranking, onClose }: {
   kind: 'award' | 'correct'
   match: HiddenWordMatch
-  ranking: RankedGroup[]
+  ranking: HiddenWordRankedGroup[]
   onClose: () => void
 }) {
   const dispatch = useHiddenWordStore((state) => state.dispatch)
@@ -250,6 +191,8 @@ export default function HiddenWord() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [dialog, setDialog] = useState<DialogKind | null>(null)
+  const { openProjection, status: projectionStatus } = useHiddenWordProjection()
+  const animations = useSettingsStore((state) => state.animationsEnabled)
   const ranking = useMemo(() => match ? hiddenWordRanking(match) : [], [match])
 
   useEffect(() => { void load() }, [load])
@@ -271,9 +214,21 @@ export default function HiddenWord() {
         <Link className="neo-btn neo-btn-surface neo-btn-sm" to="/game/new">← Novo jogo</Link>
         <h1>Palavra Oculta</h1>
         {round && <p className="hw-round-number">Rodada {match!.roundIndex + 1}</p>}
+        <button type="button" className="neo-btn neo-btn-surface neo-btn-sm" onClick={openProjection}>
+          {projectionStatus === 'ready' ? 'Ir para a projeção' : 'Abrir projeção'}
+        </button>
       </header>
 
       <main className="hw-main">
+        {projectionStatus !== 'closed' && (
+          <p className="hw-status" role="status">
+            {projectionStatus === 'blocked'
+              ? 'Permita a abertura de janelas para este site e tente novamente.'
+              : projectionStatus === 'opening'
+                ? 'Abrindo a janela de projeção…'
+                : 'No Windows, use Win + P → Estender. Se necessário, arraste apenas a janela de projeção para o telão.'}
+          </p>
+        )}
         {loadError && (
           <div className="hw-status" role="alert">
             <p>Não foi possível carregar a partida.</p>
@@ -317,15 +272,16 @@ export default function HiddenWord() {
                 </div>
               )}
             </NeoBrutalistCard>
-            <Ranking groups={ranking} />
+            <HiddenWordRanking groups={ranking} />
           </div>
         )}
 
         {match && round && (
           <>
             <div className="hw-layout hw-play">
-              <RoundBoard key={match.roundIndex} round={round} />
-              <Ranking groups={ranking} />
+              <HiddenWordBoard key={match.roundIndex} round={projectHiddenWordRound(round)} animations={animations}
+                onReveal={(position) => dispatch({ type: 'revealWord', position })} />
+              <HiddenWordRanking groups={ranking} />
             </div>
             <div className="hw-controls" role="group" aria-label="Controles do professor">
               <div className="hw-actions">
@@ -349,7 +305,7 @@ export default function HiddenWord() {
 
         {match?.phase === 'results' && (
           <div className="hw-results">
-            <Ranking groups={ranking} final />
+            <HiddenWordRanking groups={ranking} final />
             <div className="hw-actions">
               <NeoBrutalistButton size="lg" onClick={() => {
                 if (dispatch({ type: 'newMatch' })) { setQuestion(''); setAnswer('') }

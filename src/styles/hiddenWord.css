@@ -95,7 +95,7 @@
   border-bottom: 2px solid transparent;
 }
 
-.hw-slot:not(:disabled):hover { border-bottom-color: var(--color-secondary); }
+button.hw-slot:not(:disabled):hover { border-bottom-color: var(--color-secondary); }
 
 .hw-position {
   position: absolute;
@@ -153,4 +153,31 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hw-reveal { animation: none; }
+}
+
+.hw-projector {
+  background: var(--color-foreground);
+}
+
+.hw-projector .hw-main {
+  flex: 1;
+  display: grid;
+  align-items: center;
+}
+
+.hw-projector .hw-board {
+  min-height: clamp(20rem, 70vh, 65rem);
+}
+
+.hw-projector .hw-question-slots {
+  font-size: clamp(2rem, 5.5vw, 6rem);
+}
+
+.hw-projector .hw-projector-waiting {
+  grid-template-rows: 1fr;
+  place-items: center;
+}
+
+.hw-fullscreen {
+  margin-inline-start: auto;
 }
