@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { quizApi } from '@/lib/api'
+import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton'
 import type { Quiz } from '@/types'
 
 // ─── NewGame Screen ────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export default function NewGame() {
   return (
     <div className="min-h-screen bg-[#F5F0E8] flex flex-col">
       {/* Header */}
-      <header className="border-b-4 border-[#0A0A0A] bg-[#FFD600] px-8 py-5 flex items-center gap-6 shadow-[0_4px_0_#0A0A0A]">
+      <header className="border-b-4 border-[#0A0A0A] bg-[#FFD600] px-8 py-5 flex flex-wrap items-center gap-6 shadow-[0_4px_0_#0A0A0A]">
         <button
           onClick={() => navigate(-1)}
           className="border-3 border-[#0A0A0A] bg-white px-4 py-2 font-black text-sm
@@ -63,6 +64,16 @@ export default function NewGame() {
         <h1 className="text-4xl font-black tracking-tight uppercase">NOVO JOGO</h1>
         <span className="ml-auto text-sm font-bold opacity-60">{quizzes.length} quizzes disponíveis</span>
       </header>
+
+      <section className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#0A0A0A] px-8 py-5" aria-label="Palavra Oculta">
+        <div>
+          <h2 className="font-heading text-2xl font-black">Palavra Oculta</h2>
+          <p className="text-sm">Revele a resposta palavra por palavra e pontue os grupos.</p>
+        </div>
+        <NeoBrutalistButton variant="secondary" onClick={() => navigate('/game/hidden-word')}>
+          Abrir Palavra Oculta
+        </NeoBrutalistButton>
+      </section>
 
       {/* Search & Filter */}
       <div className="px-8 py-6 flex flex-wrap gap-4 items-center border-b-2 border-[#0A0A0A]">
