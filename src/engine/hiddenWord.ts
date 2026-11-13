@@ -6,7 +6,8 @@ export interface HiddenWordGroup {
 export interface HiddenWordRound {
   question: string
   answer: string
-  revealed: number
+  revealedPositions: number[]
+  answerVisible: boolean
 }
 
 export interface HiddenWordAward {
@@ -17,7 +18,7 @@ export interface HiddenWordAward {
 }
 
 export interface HiddenWordMatch {
-  version: 1
+  version: 2
   phase: 'groups' | 'compose' | 'round' | 'results'
   groups: HiddenWordGroup[]
   rounds: HiddenWordRound[]
@@ -26,23 +27,37 @@ export interface HiddenWordMatch {
 }
 
 export function createHiddenWordMatch(): HiddenWordMatch {
-  return { version: 1, phase: 'groups', groups: [], rounds: [], roundIndex: 0, awards: [] }
+  return { version: 2, phase: 'groups', groups: [], rounds: [], roundIndex: 0, awards: [] }
 }
 
-interface AnswerPart {
-  text: string
-  wordIndex: number | null
-  masked: string
+type PreviousHiddenWordMatch = Omit<HiddenWordMatch, 'version' | 'rounds'> & {
+  version: 1
+  rounds: { question: string; answer: string; revealed: number }[]
 }
 
-// Treat accents attached to a letter as part of the same slot, including decomposed input.
-// Hyphens and apostrophes stay visible within the same whitespace-delimited word.
-export function splitHiddenAnswer(answer: string) {
+export function loadHiddenWordMatch(raw: string | null): HiddenWordMatch {
+  if (!raw) return createHiddenWordMatch()
+  const match: HiddenWordMatch | PreviousHiddenWordMatch = JSON.parse(raw)
+  if (match.version === 2) return match
+  if (match.version === 1) {
+    return {
+      ...match,
+      version: 2,
+      rounds: match.rounds.map(({ question, answer }) => ({
+        question, answer, revealedPositions: [], answerVisible: false,
+      })),
+    }
+  }
+  throw new Error('Versão de partida incompatível')
+}
+
+export function splitHiddenQuestion(question: string) {
   let wordCount = 0
-  const parts: AnswerPart[] = (answer.match(/\s+|\S+/gu) ?? []).map((text) => {
-    const masked = text.replace(/[\p{L}\p{N}]\p{M}*/gu, '_')
-    const wordIndex = masked === text ? null : wordCount++
-    return { text, wordIndex, masked }
+  // Use a fixed-size blank for each word. Keep punctuation, spacing and attached accents.
+  const parts = (question.match(/\s+|\S+/gu) ?? []).map((text) => {
+    const masked = text.replace(/(?:[\p{L}\p{N}]\p{M}*)+/gu, '___')
+    const position = masked === text ? null : ++wordCount
+    return { text, position, masked }
   })
   return { parts, wordCount }
 }
@@ -67,7 +82,8 @@ export type HiddenWordAction =
   | { type: 'removeGroup'; id: string }
   | { type: 'compose' }
   | { type: 'addRound'; question: string; answer: string }
-  | { type: 'reveal'; count: number }
+  | { type: 'revealWord'; position: number }
+  | { type: 'showAnswer' | 'resetRound' }
   | { type: 'previous' | 'next' | 'finish' | 'newMatch' }
   | { type: 'award'; id: string; groupId: string; points: number }
   | { type: 'correct'; id: string; points: number }
@@ -91,22 +107,37 @@ export function updateHiddenWordMatch(match: HiddenWordMatch, action: HiddenWord
       return phase === 'groups' && match.groups.length > 0 ? { ...match, phase: 'compose' } : match
     case 'addRound': {
       const question = action.question.trim()
-      if (phase !== 'compose' || !question || !splitHiddenAnswer(action.answer).wordCount) return match
+      if (phase !== 'compose' || !splitHiddenQuestion(question).wordCount || !action.answer.trim()) return match
       return {
         ...match,
         phase: 'round',
         roundIndex: rounds.length,
-        rounds: [...rounds, { question, answer: action.answer, revealed: 0 }],
+        rounds: [...rounds, { question, answer: action.answer.trim(), revealedPositions: [], answerVisible: false }],
       }
     }
-    case 'reveal': {
-      if (phase !== 'round' || !Number.isSafeInteger(action.count)) return match
+    case 'revealWord':
+    case 'showAnswer':
+    case 'resetRound': {
+      if (phase !== 'round') return match
       const round = rounds[roundIndex]
-      const revealed = Math.min(Math.max(0, action.count), splitHiddenAnswer(round.answer).wordCount)
-      if (revealed === round.revealed) return match
+      let nextRound: HiddenWordRound
+      if (action.type === 'revealWord') {
+        const { position } = action
+        if (round.answerVisible || !Number.isSafeInteger(position) || position < 1 ||
+          position > splitHiddenQuestion(round.question).wordCount || round.revealedPositions.includes(position)) {
+          return match
+        }
+        nextRound = { ...round, revealedPositions: [...round.revealedPositions, position] }
+      } else if (action.type === 'showAnswer') {
+        if (round.answerVisible) return match
+        nextRound = { ...round, answerVisible: true }
+      } else {
+        if (!round.revealedPositions.length && !round.answerVisible) return match
+        nextRound = { ...round, revealedPositions: [], answerVisible: false }
+      }
       return {
         ...match,
-        rounds: rounds.map((item, index) => index === roundIndex ? { ...item, revealed } : item),
+        rounds: rounds.map((item, index) => index === roundIndex ? nextRound : item),
       }
     }
     case 'previous':

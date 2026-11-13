@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { settingsApi } from '@/lib/api'
 import {
-  createHiddenWordMatch, updateHiddenWordMatch,
+  loadHiddenWordMatch, updateHiddenWordMatch,
   type HiddenWordAction, type HiddenWordMatch,
 } from '@/engine/hiddenWord'
 
@@ -42,9 +42,7 @@ export const useHiddenWordStore = create<HiddenWordState>((set, get) => {
       set({ loading: true, loadError: false })
       try {
         const raw = await settingsApi.get(matchKey)
-        const match: HiddenWordMatch = raw ? JSON.parse(raw) : createHiddenWordMatch()
-        if (match.version !== 1) throw new Error('Versão de partida incompatível')
-        set({ match })
+        set({ match: loadHiddenWordMatch(raw) })
       } catch {
         set({ loadError: true })
       } finally {

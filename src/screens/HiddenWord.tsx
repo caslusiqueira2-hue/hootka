@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import NeoBrutalistButton from '@/components/ui/NeoBrutalistButton'
 import NeoBrutalistCard from '@/components/ui/NeoBrutalistCard'
 import {
-  hiddenWordRanking, splitHiddenAnswer, type HiddenWordMatch, type HiddenWordRound,
+  hiddenWordRanking, splitHiddenQuestion, type HiddenWordMatch, type HiddenWordRound,
 } from '@/engine/hiddenWord'
 import { useHiddenWordStore } from '@/stores/hiddenWordStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -101,25 +101,45 @@ function GroupSetup({ groups }: { groups: HiddenWordMatch['groups'] }) {
 }
 
 function RoundBoard({ round }: { round: HiddenWordRound }) {
+  const dispatch = useHiddenWordStore((state) => state.dispatch)
   const animations = useSettingsStore((state) => state.animationsEnabled)
-  const { parts } = useMemo(() => splitHiddenAnswer(round.answer), [round.answer])
+  const { parts } = useMemo(() => splitHiddenQuestion(round.question), [round.question])
+  const revealedPositions = new Set(round.revealedPositions)
 
   return (
     <section className="neo-card hw-board" aria-labelledby="hw-question">
-      <h2 id="hw-question">{round.question}</h2>
-      <div className="hw-answer" aria-label="Resposta" aria-live="polite" aria-atomic="true">
-        {parts.map(({ text, masked, wordIndex }, index) => {
-          if (wordIndex === null) return text
-          const revealed = wordIndex < round.revealed
+      <header>
+        <h2 id="hw-question">Pergunta oculta</h2>
+        {!round.answerVisible && <p>Clique na posição pedida pelo grupo.</p>}
+      </header>
+      <div className="hw-question-slots" role="group" aria-label="Posições da pergunta">
+        {parts.map(({ text, masked, position }, index) => {
+          if (position === null) return text
+          const revealed = revealedPositions.has(position)
           return (
-            <span key={index} className="hw-word">
-              {revealed
-                ? <span className={animations ? 'hw-revealed hw-reveal' : 'hw-revealed'}>{text}</span>
-                : masked}
-            </span>
+            <button key={index} type="button" className="hw-slot"
+              disabled={revealed || round.answerVisible}
+              aria-label={revealed ? `Posição ${position}: ${text}` : `Revelar posição ${position}`}
+              onClick={() => dispatch({ type: 'revealWord', position })}>
+              <span className="hw-position" aria-hidden="true">{position}</span>
+              <span className={revealed ? (animations ? 'hw-revealed hw-reveal' : 'hw-revealed') : undefined}>
+                {revealed ? text : masked}
+              </span>
+            </button>
           )
         })}
       </div>
+      <p className="sr-only" role="status">
+        {parts.map(({ text, position, masked }) =>
+          position === null || revealedPositions.has(position) ? text : masked
+        ).join('')}
+      </p>
+      {round.answerVisible && (
+        <div className="hw-solution" role="status">
+          <span>Resposta correta</span>
+          <strong>{round.answer}</strong>
+        </div>
+      )}
     </section>
   )
 }
@@ -243,8 +263,6 @@ export default function HiddenWord() {
   }
 
   const round = match?.phase === 'round' ? match.rounds[match.roundIndex] : null
-  const wordCount = round ? splitHiddenAnswer(round.answer).wordCount : 0
-  const allRevealed = round?.revealed === wordCount
   const closeDialog = () => setDialog(null)
 
   return (
@@ -285,7 +303,7 @@ export default function HiddenWord() {
                   value={answer} onChange={(event) => setAnswer(event.target.value)} />
                 <div className="hw-actions">
                   <NeoBrutalistButton type="submit" variant="secondary" size="lg"
-                    disabled={!question.trim() || !splitHiddenAnswer(answer).wordCount}>Continuar</NeoBrutalistButton>
+                    disabled={!splitHiddenQuestion(question).wordCount || !answer.trim()}>Continuar</NeoBrutalistButton>
                   <NeoBrutalistButton variant="ghost" onClick={() => dispatch({ type: 'previous' })}>
                     {match.rounds.length ? 'Pergunta anterior' : 'Voltar aos grupos'}
                   </NeoBrutalistButton>
@@ -311,18 +329,16 @@ export default function HiddenWord() {
             </div>
             <div className="hw-controls" role="group" aria-label="Controles do professor">
               <div className="hw-actions">
-                <NeoBrutalistButton disabled={allRevealed}
-                  onClick={() => dispatch({ type: 'reveal', count: round.revealed + 1 })}>Revelar próxima palavra</NeoBrutalistButton>
-                <NeoBrutalistButton variant="ghost" disabled={allRevealed}
-                  onClick={() => dispatch({ type: 'reveal', count: wordCount })}>Revelar tudo</NeoBrutalistButton>
+                <NeoBrutalistButton variant="ghost" disabled={round.answerVisible}
+                  onClick={() => dispatch({ type: 'showAnswer' })}>Mostrar resposta correta</NeoBrutalistButton>
                 <NeoBrutalistButton variant="secondary" onClick={() => setDialog('award')}>Pontuar grupo</NeoBrutalistButton>
                 <NeoBrutalistButton variant="ghost" onClick={() => dispatch({ type: 'next' })}>Próxima pergunta</NeoBrutalistButton>
               </div>
               <div className="hw-actions">
                 <NeoBrutalistButton size="sm" variant="ghost" disabled={match.roundIndex === 0}
                   onClick={() => dispatch({ type: 'previous' })}>Pergunta anterior</NeoBrutalistButton>
-                <NeoBrutalistButton size="sm" variant="ghost" disabled={!round.revealed}
-                  onClick={() => dispatch({ type: 'reveal', count: 0 })}>Reiniciar rodada</NeoBrutalistButton>
+                <NeoBrutalistButton size="sm" variant="ghost" disabled={!round.revealedPositions.length && !round.answerVisible}
+                  onClick={() => dispatch({ type: 'resetRound' })}>Reiniciar rodada</NeoBrutalistButton>
                 <NeoBrutalistButton size="sm" variant="ghost" disabled={!match.awards.length}
                   onClick={() => setDialog('correct')}>Corrigir pontuação</NeoBrutalistButton>
                 <NeoBrutalistButton size="sm" variant="ghost" onClick={() => setDialog('finish')}>Encerrar partida</NeoBrutalistButton>

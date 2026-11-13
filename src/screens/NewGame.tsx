@@ -68,7 +68,7 @@ export default function NewGame() {
       <section className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#0A0A0A] px-8 py-5" aria-label="Palavra Oculta">
         <div>
           <h2 className="font-heading text-2xl font-black">Palavra Oculta</h2>
-          <p className="text-sm">Revele a resposta palavra por palavra e pontue os grupos.</p>
+          <p className="text-sm">Os grupos escolhem quais palavras da pergunta revelar para tentar acertar a resposta.</p>
         </div>
         <NeoBrutalistButton variant="secondary" onClick={() => navigate('/game/hidden-word')}>
           Abrir Palavra Oculta
