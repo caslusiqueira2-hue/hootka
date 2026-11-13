@@ -1,0 +1,122 @@
+.hw-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hw-screen :is(h1, h2, label, .hw-place, .hw-points) {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.hw-screen :is(button, a):focus-visible {
+  outline: 3px solid var(--color-secondary) !important;
+  outline-offset: 4px;
+}
+
+.hw-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem clamp(1rem, 3vw, 3rem);
+  background: var(--color-accent);
+  border-bottom: var(--border-width-thick) solid var(--color-foreground);
+}
+
+.hw-header h1 { font-size: clamp(1.5rem, 3.5vw, 2.5rem); }
+.hw-round-number { margin-inline-start: auto; font-weight: 800; }
+.hw-main { width: min(100%, 98rem); margin-inline: auto; padding: clamp(1rem, 3vw, 3rem); }
+.hw-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(14rem, 24%); gap: 1.5rem; align-items: start; }
+.hw-panel { display: grid; gap: 1.25rem; width: 100%; max-width: 52rem; margin-inline: auto; }
+.hw-panel h2, .hw-ranking h2, .hw-dialog h2 { font-size: clamp(1.25rem, 2.4vw, 1.75rem); }
+.hw-form { display: grid; gap: 0.65rem; }
+.hw-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+.hw-actions .neo-input { flex: 1 1 14rem; width: auto; min-width: 0; }
+.hw-actions button { max-width: 100%; white-space: normal; }
+.hw-form > .hw-actions:last-child { margin-top: 0.5rem; }
+
+.hw-group-list, .hw-ranking-list { margin: 0; padding: 0; list-style: none; }
+.hw-group-list li, .hw-ranking-list li {
+  display: grid;
+  gap: 0.5rem;
+  align-items: center;
+  padding-block: 0.75rem;
+  border-bottom: 2px solid var(--color-foreground);
+}
+
+.hw-group-list li { grid-template-columns: minmax(0, 1fr) auto auto; }
+.hw-ranking-list li { grid-template-columns: auto minmax(0, 1fr) auto; }
+.hw-group-list strong, .hw-ranking-list strong { overflow-wrap: anywhere; }
+.hw-ranking { padding: 1rem; min-width: 0; }
+.hw-ranking h2 { border-bottom: 3px solid var(--color-foreground); padding-bottom: 0.5rem; }
+.hw-ranking-list { max-height: min(55vh, 28rem); overflow: auto; }
+.hw-ranking-list li:last-child { border-bottom: 0; }
+.hw-place { background: var(--color-accent); border: 2px solid var(--color-foreground); padding: 0.05em 0.3em; }
+.hw-points { text-align: end; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hw-ranking:not(.hw-ranking-final) .hw-points { max-width: 8ch; }
+
+.hw-board {
+  min-height: clamp(19rem, 54vh, 43rem);
+  display: grid;
+  align-content: start;
+  grid-template-rows: auto 1fr;
+  gap: clamp(1.75rem, 5vh, 4rem);
+  padding: clamp(1.15rem, 3vw, 3.25rem);
+  text-align: center;
+}
+
+.hw-board h2 {
+  font-size: clamp(1.9rem, 4.35vw, 4.25rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.hw-answer {
+  align-self: center;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: clamp(1.5rem, 4vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.7;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+}
+
+.hw-word { letter-spacing: 0.055em; }
+.hw-revealed { color: var(--color-secondary); }
+.hw-reveal { animation: hw-reveal 180ms ease-out; }
+@keyframes hw-reveal { from { opacity: 0.2; } to { opacity: 1; } }
+
+.hw-controls { display: grid; gap: 0.85rem; margin-top: 1.5rem; }
+.hw-results { max-width: 52rem; margin-inline: auto; display: grid; gap: 1.5rem; }
+.hw-ranking-final { font-size: clamp(1.1rem, 2vw, 1.6rem); }
+.hw-ranking-final .hw-ranking-list { max-height: none; }
+.hw-status { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+
+.hw-dialog {
+  width: min(calc(100% - 2rem), 36rem);
+  max-height: calc(100% - 2rem);
+  padding: 0;
+  margin: auto;
+  overflow: auto;
+}
+
+.hw-dialog::backdrop { background: rgb(10 10 10 / 62%); }
+.hw-dialog h2 { padding: 0.75rem 1.25rem; background: var(--color-accent); border-bottom: 3px solid var(--color-foreground); }
+.hw-dialog-content { display: grid; gap: 1rem; padding: 1.25rem; }
+
+@media (max-width: 760px) {
+  .hw-layout { grid-template-columns: minmax(0, 1fr); }
+  .hw-play .hw-ranking { grid-row: 2; }
+  .hw-ranking-list { max-height: 12rem; }
+}
+
+@media (max-width: 450px) {
+  .hw-group-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .hw-group-list .hw-actions { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-reveal { animation: none; }
+}

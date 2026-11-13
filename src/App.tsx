@@ -23,6 +23,7 @@ const CreateQuiz       = lazy(() => import('@/screens/CreateQuiz'))
 const EditQuiz         = lazy(() => import('@/screens/EditQuiz'))
 const ImportQuestions  = lazy(() => import('@/screens/ImportQuestions'))
 const NewGame          = lazy(() => import('@/screens/NewGame'))
+const HiddenWord       = lazy(() => import('@/screens/HiddenWord'))
 const GameSetup        = lazy(() => import('@/screens/GameSetup'))
 const Lobby            = lazy(() => import('@/screens/Lobby'))
 const QuestionScreen   = lazy(() => import('@/screens/QuestionScreen'))
@@ -266,6 +267,16 @@ function AnimatedRoutes() {
             <PageWrapper>
               <Suspense fallback={<PageLoader />}>
                 <NewGame />
+              </Suspense>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/game/hidden-word"
+          element={
+            <PageWrapper>
+              <Suspense fallback={<PageLoader />}>
+                <HiddenWord />
               </Suspense>
             </PageWrapper>
           }
