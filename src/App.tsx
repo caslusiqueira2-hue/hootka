@@ -14,6 +14,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { useGameStore } from '@/stores/gameStore'
 import api from '@/lib/api'
 import type { Game } from '@/types'
+import { hiddenWordProjectionPath } from '@/lib/hiddenWordProjection'
 
 // ─── Lazy screen imports ──────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ const EditQuiz         = lazy(() => import('@/screens/EditQuiz'))
 const ImportQuestions  = lazy(() => import('@/screens/ImportQuestions'))
 const NewGame          = lazy(() => import('@/screens/NewGame'))
 const HiddenWord       = lazy(() => import('@/screens/HiddenWord'))
+const HiddenWordProjector = lazy(() => import('@/screens/HiddenWordProjector'))
 const GameSetup        = lazy(() => import('@/screens/GameSetup'))
 const Lobby            = lazy(() => import('@/screens/Lobby'))
 const QuestionScreen   = lazy(() => import('@/screens/QuestionScreen'))
@@ -441,7 +443,12 @@ function AppInner() {
 export default function App() {
   return (
     <HashRouter>
-      <AppInner />
+      <Routes>
+        <Route path={`${hiddenWordProjectionPath}/:sessionId`} element={
+          <Suspense fallback={<PageLoader />}><HiddenWordProjector /></Suspense>
+        } />
+        <Route path="*" element={<AppInner />} />
+      </Routes>
     </HashRouter>
   )
 }
